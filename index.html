@@ -1698,6 +1698,11 @@ function calcStreak(cd) {
   let s = 0;
   const c = new Date();
   c.setHours(0, 0, 0, 0);
+  const todayStr = localDateStr(c);
+  // If today isn't logged yet, start counting from yesterday
+  if (!cd.has(todayStr)) {
+    c.setDate(c.getDate() - 1);
+  }
   while (true) {
     const ds = localDateStr(c);
     if (cd.has(ds)) {
@@ -10189,6 +10194,46 @@ function WorkoutTracker() {
       setLocked(true);
       setMenuOpen(false);
     }
+  }, {
+    label: "🔒  Register Face ID",
+    a: async () => {
+      const ok = await (async () => {
+        if (!window.PublicKeyCredential) return false;
+        try {
+          const ch = crypto.getRandomValues(new Uint8Array(32));
+          const uid = crypto.getRandomValues(new Uint8Array(16));
+          const c = await navigator.credentials.create({
+            publicKey: {
+              challenge: ch,
+              rp: {
+                name: "Workout Tracker"
+              },
+              user: {
+                id: uid,
+                name: "user",
+                displayName: "User"
+              },
+              pubKeyCredParams: [{
+                alg: -7,
+                type: "public-key"
+              }],
+              authenticatorSelection: {
+                userVerification: "required",
+                authenticatorAttachment: "platform"
+              },
+              timeout: 30000
+            }
+          });
+          const id = btoa(String.fromCharCode(...new Uint8Array(c.rawId)));
+          localStorage.setItem("wt-cred-id", id);
+          return true;
+        } catch {
+          return false;
+        }
+      })();
+      setMenuOpen(false);
+      alert(ok ? "✅ Face ID registered! You can now use Face ID to unlock." : "❌ Face ID registration failed or not supported.");
+    }
   }].map(item => /*#__PURE__*/React.createElement("button", {
     key: item.label,
     onClick: item.a,
@@ -10676,7 +10721,51 @@ function WorkoutTracker() {
       border: `1px solid ${workout.tagColor}30`,
       whiteSpace: "nowrap"
     }
-  }, "\uD83D\uDCCA prev loaded")), workout.isRecovery ? /*#__PURE__*/React.createElement(RecoveryView, {
+  }, "\uD83D\uDCCA prev loaded")), workout.isRecovery && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: currentLog.startedAt || currentLog.note ? "rgba(74,222,128,0.08)" : "rgba(168,230,207,0.08)",
+      border: `1px solid ${currentLog.startedAt || currentLog.note ? "rgba(74,222,128,0.3)" : "rgba(168,230,207,0.25)"}`,
+      borderRadius: 14,
+      padding: "12px 16px",
+      marginBottom: 12,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 12
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: 13,
+      fontWeight: 700,
+      color: currentLog.startedAt || currentLog.note ? "#4ade80" : "#a8e6cf"
+    }
+  }, currentLog.startedAt || currentLog.note ? "✓ Recovery day logged" : "Log this recovery day"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      marginTop: 2
+    }
+  }, currentLog.startedAt || currentLog.note ? "Showing on your stats calendar" : "Tap to count this day toward your streak")), !(currentLog.startedAt || currentLog.note) && /*#__PURE__*/React.createElement("button", {
+    onClick: () => mutate(l => ({
+      ...l,
+      startedAt: l.startedAt || new Date().toISOString(),
+      note: l.note || "Active recovery"
+    })),
+    style: {
+      padding: "8px 16px",
+      borderRadius: 20,
+      background: "#a8e6cf",
+      border: "none",
+      color: "#0d0d14",
+      fontSize: 11,
+      fontWeight: 700,
+      fontFamily: "'DM Mono', monospace",
+      cursor: "pointer",
+      flexShrink: 0
+    }
+  }, "Log Day \u2713")), workout.isRecovery ? /*#__PURE__*/React.createElement(RecoveryView, {
     T: T,
     dark: dark
   }) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(ExerciseSection, {
