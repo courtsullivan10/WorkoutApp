@@ -1420,7 +1420,96 @@ const LOGS_KEY = "wt-v4-logs",
   THEME_KEY = "wt-theme",
   WORKOUTS_KEY = "wt-workouts",
   STRETCH_LOGS_KEY = "wt-stretch-logs",
-  PLANS_KEY = "wt-plans";
+  PLANS_KEY = "wt-plans",
+  FREE_LOGS_KEY = "wt-free-logs";
+const loadFreeLogs = () => {
+  try {
+    return JSON.parse(localStorage.getItem(FREE_LOGS_KEY) || "[]");
+  } catch {
+    return [];
+  }
+};
+const saveFreeLogs = l => {
+  try {
+    localStorage.setItem(FREE_LOGS_KEY, JSON.stringify(l));
+  } catch {}
+};
+const FREE_WORKOUT_TYPES = [{
+  id: "run",
+  label: "Running",
+  emoji: "🏃‍♀️",
+  color: "#ff6b6b"
+}, {
+  id: "bike",
+  label: "Biking",
+  emoji: "🚴‍♀️",
+  color: "#ffd93d"
+}, {
+  id: "swim",
+  label: "Swimming",
+  emoji: "🏊‍♀️",
+  color: "#4ecdc4"
+}, {
+  id: "walk",
+  label: "Walking",
+  emoji: "🚶‍♀️",
+  color: "#a8e6cf"
+}, {
+  id: "hiit",
+  label: "HIIT",
+  emoji: "⚡",
+  color: "#ff9f7f"
+}, {
+  id: "yoga",
+  label: "Yoga",
+  emoji: "🧘‍♀️",
+  color: "#b794f4"
+}, {
+  id: "pilates",
+  label: "Pilates",
+  emoji: "🤸‍♀️",
+  color: "#80d8d4"
+}, {
+  id: "boxing",
+  label: "Boxing",
+  emoji: "🥊",
+  color: "#ff6b6b"
+}, {
+  id: "tennis",
+  label: "Tennis",
+  emoji: "🎾",
+  color: "#4ade80"
+}, {
+  id: "dance",
+  label: "Dance",
+  emoji: "💃",
+  color: "#f9a825"
+}, {
+  id: "hike",
+  label: "Hiking",
+  emoji: "🥾",
+  color: "#a8e6cf"
+}, {
+  id: "rowing",
+  label: "Rowing",
+  emoji: "🚣‍♀️",
+  color: "#4ecdc4"
+}, {
+  id: "climb",
+  label: "Climbing",
+  emoji: "🧗‍♀️",
+  color: "#ffd93d"
+}, {
+  id: "sport",
+  label: "Sport",
+  emoji: "🏅",
+  color: "#80d8d4"
+}, {
+  id: "other",
+  label: "Other",
+  emoji: "💪",
+  color: "#888"
+}];
 // Plans: each plan owns its own workouts array
 // On first load we migrate the existing workouts into a default plan
 function loadPlansInit() {
@@ -1597,8 +1686,10 @@ function getAllTimePRs(logs, workouts) {
     ...v
   })).sort((a, b) => b.weight - a.weight);
 }
-function getCompletedDates(logs) {
-  return new Set(Object.entries(logs).filter(([, log]) => Object.values(log.checked || {}).some(Boolean)).map(([k]) => k.split("-").slice(0, 3).join("-")));
+function getCompletedDates(logs, freeLogs = []) {
+  const fromLogs = Object.entries(logs).filter(([, log]) => Object.values(log.checked || {}).some(Boolean) || !!log.startedAt).map(([k]) => k.split("-").slice(0, 3).join("-"));
+  const fromFree = freeLogs.map(f => f.date);
+  return new Set([...fromLogs, ...fromFree]);
 }
 function localDateStr(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -1616,7 +1707,7 @@ function calcStreak(cd) {
   }
   return s;
 }
-function buildMonthCalendar(year, month, completedDates) {
+function buildMonthCalendar(year, month, completedDates, freeDates = new Set()) {
   const today = getTodayKey(),
     first = new Date(year, month, 1).getDay(),
     dim = new Date(year, month + 1, 0).getDate(),
@@ -1624,10 +1715,14 @@ function buildMonthCalendar(year, month, completedDates) {
   for (let i = 0; i < first; i++) cells.push(null);
   for (let d = 1; d <= dim; d++) {
     const ds = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    const trained = completedDates.has(ds),
+      free = freeDates.has(ds);
     cells.push({
       day: d,
       date: ds,
-      trained: completedDates.has(ds),
+      trained,
+      free,
+      both: trained && free,
       isToday: ds === today,
       isFuture: ds > today
     });
@@ -5449,15 +5544,18 @@ function MonthCalendar({
   year,
   month,
   completedDates,
+  freeDates = new Set(),
   accent,
-  T
+  T,
+  onDayTap
 }) {
-  const cells = buildMonthCalendar(year, month, completedDates);
+  const cells = buildMonthCalendar(year, month, completedDates, freeDates);
   const monthName = new Date(year, month, 1).toLocaleDateString([], {
     month: "long",
     year: "numeric"
   });
   const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  const FREE_COLOR = "#ff6b6b";
   return /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 4
@@ -5489,32 +5587,39 @@ function MonthCalendar({
     }
   }, d)), cells.map((cell, i) => !cell ? /*#__PURE__*/React.createElement("div", {
     key: `e${i}`
-  }) : /*#__PURE__*/React.createElement("div", {
-    key: cell.date,
-    style: {
-      aspectRatio: "1",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      borderRadius: "50%",
-      fontSize: 10,
-      fontFamily: "'DM Mono', monospace",
-      background: cell.trained ? accent : cell.isToday ? `${accent}20` : "transparent",
-      color: cell.trained ? "#0d0d14" : cell.isToday ? accent : cell.isFuture ? T.textDim : T.textSub,
-      border: cell.isToday && !cell.trained ? `1.5px solid ${accent}` : "1.5px solid transparent",
-      fontWeight: cell.trained || cell.isToday ? 700 : 400,
-      position: "relative",
-      transition: "all 0.15s"
-    }
-  }, cell.trained && /*#__PURE__*/React.createElement("span", {
-    style: {
-      position: "absolute",
-      top: 0,
-      right: 2,
-      fontSize: 6,
-      lineHeight: 1
-    }
-  }, "\u2713"), cell.day))));
+  }) : (() => {
+    const bg = cell.both ? `linear-gradient(135deg,${FREE_COLOR},${accent})` : cell.trained ? accent : cell.free ? FREE_COLOR : cell.isToday ? `${accent}20` : "transparent";
+    const fg = cell.trained || cell.free || cell.both ? "#0d0d14" : cell.isToday ? accent : cell.isFuture ? T.textDim : T.textSub;
+    const border = cell.isToday && !cell.trained && !cell.free ? `1.5px solid ${accent}` : "1.5px solid transparent";
+    return /*#__PURE__*/React.createElement("div", {
+      key: cell.date,
+      onClick: () => (cell.trained || cell.free || cell.both) && onDayTap && onDayTap(cell.date),
+      style: {
+        aspectRatio: "1",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        borderRadius: "50%",
+        fontSize: 10,
+        fontFamily: "'DM Mono', monospace",
+        background: bg,
+        color: fg,
+        border,
+        fontWeight: cell.trained || cell.isToday || cell.free ? 700 : 400,
+        position: "relative",
+        transition: "all 0.15s",
+        cursor: (cell.trained || cell.free || cell.both) && onDayTap ? "pointer" : "default"
+      }
+    }, cell.trained && /*#__PURE__*/React.createElement("span", {
+      style: {
+        position: "absolute",
+        top: 0,
+        right: 2,
+        fontSize: 6,
+        lineHeight: 1
+      }
+    }, "\u2713"), cell.day);
+  })())));
 }
 function JourneyStrip({
   completedDates,
@@ -5628,7 +5733,8 @@ function StatsView({
   workouts,
   T,
   dark,
-  stretchLogs
+  stretchLogs,
+  freeLogs = []
 }) {
   const [tab, setTab] = useState("workout");
   const today = new Date();
@@ -5636,8 +5742,9 @@ function StatsView({
 
   // ── Workout data ────────────────────────────────────────────────────────────
   const [wCalYear, setWCalYear] = useState(today.getFullYear());
+  const [calDayModal, setCalDayModal] = useState(null); // date string tapped
   const [wCalMonth, setWCalMonth] = useState(today.getMonth());
-  const completedDates = useMemo(() => getCompletedDates(logs), [logs]);
+  const completedDates = useMemo(() => getCompletedDates(logs, freeLogs), [logs, freeLogs]);
   const streak = useMemo(() => calcStreak(completedDates), [completedDates]);
   const totalSessions = completedDates.size;
   const thisMonth = Array.from(completedDates).filter(d => d.startsWith(thisMonthStr)).length;
@@ -5861,7 +5968,242 @@ function StatsView({
     t: "prs",
     label: "🏆 Records"
   }];
-  return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+
+  // Day detail data
+  const calDayData = calDayModal ? {
+    planEntries: Object.entries(logs).filter(([k]) => k.startsWith(calDayModal)).map(([k, log]) => {
+      const dayId = k.replace(calDayModal + "-", "");
+      const w = workouts.find(w => w.id === dayId);
+      if (!w) return null;
+      const allEx = [...w.exercises, ...w.core],
+        total = allEx.reduce((a, e) => a + (e.sets || 0), 0);
+      const done = Object.values(log.checked || {}).filter(Boolean).length;
+      const pct = total ? Math.min(100, Math.round(done / total * 100)) : 0;
+      return {
+        w,
+        log,
+        pct
+      };
+    }).filter(Boolean),
+    freeEntries: (freeLogs || []).filter(f => f.date === calDayModal),
+    stretchCount: Object.keys((stretchLogs || {})[calDayModal] || {}).length
+  } : null;
+  return /*#__PURE__*/React.createElement(React.Fragment, null, calDayModal && calDayData && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 1010,
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      background: "rgba(0,0,0,0.65)",
+      backdropFilter: "blur(5px)"
+    },
+    onClick: () => setCalDayModal(null)
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: T.sheetBg,
+      borderRadius: "24px 24px 0 0",
+      width: "100%",
+      maxWidth: 540,
+      border: `1px solid ${T.glassBorder}`,
+      boxShadow: "0 -8px 40px rgba(0,0,0,0.5)",
+      maxHeight: "75vh",
+      overflowY: "auto",
+      paddingBottom: 32
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 18px 12px",
+      borderBottom: `1px solid ${T.divider}`,
+      position: "sticky",
+      top: 0,
+      background: T.sheetBg
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 36,
+      height: 4,
+      background: T.glassBorder,
+      borderRadius: 2,
+      margin: "0 auto 12px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: 17,
+      fontWeight: 800,
+      color: T.text
+    }
+  }, calDayModal), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 8,
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      marginTop: 2,
+      letterSpacing: 2
+    }
+  }, calDayData.planEntries.length, " workout", calDayData.planEntries.length !== 1 ? "s" : "", " \xB7 ", calDayData.freeEntries.length, " free \xB7 ", calDayData.stretchCount, " stretches")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "12px 18px"
+    }
+  }, calDayData.planEntries.length === 0 && calDayData.freeEntries.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "30px 0",
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      fontSize: 12
+    }
+  }, "No workout data for this day."), calDayData.planEntries.map(({
+    w,
+    log,
+    pct
+  }, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      background: T.glass,
+      border: `1px solid ${w.tagColor}33`,
+      borderLeft: `3px solid ${w.tagColor}`,
+      borderRadius: 12,
+      padding: "10px 14px",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: 13,
+      fontWeight: 700,
+      color: T.text
+    }
+  }, w.emoji, " ", w.title), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 8,
+      color: w.tagColor,
+      fontFamily: "'DM Mono', monospace",
+      marginTop: 1
+    }
+  }, w.tag, " \xB7 Day ", w.day)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'DM Mono', monospace",
+      fontSize: 16,
+      fontWeight: 700,
+      color: w.tagColor
+    }
+  }, pct, "%")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 3,
+      background: T.pill,
+      borderRadius: 2,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: `${pct}%`,
+      height: "100%",
+      background: w.tagColor,
+      borderRadius: 2
+    }
+  })), log.duration && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      marginTop: 4
+    }
+  }, "\u23F1 ", fmtDur(log.duration)), log.note && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      marginTop: 4,
+      fontStyle: "italic"
+    }
+  }, "\"", log.note, "\""))), calDayData.freeEntries.map(f => /*#__PURE__*/React.createElement("div", {
+    key: f.id,
+    style: {
+      background: T.glass,
+      border: `2px dashed ${f.color}55`,
+      borderRadius: 12,
+      padding: "10px 14px",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 20
+    }
+  }, f.emoji), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: 13,
+      fontWeight: 700,
+      color: T.text
+    }
+  }, f.label), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: f.color,
+      fontFamily: "'DM Mono', monospace",
+      marginTop: 1
+    }
+  }, "Free Workout"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'DM Mono', monospace",
+      fontSize: 16,
+      fontWeight: 700,
+      color: f.color
+    }
+  }, fmtDur(f.duration))), f.note && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      marginTop: 4,
+      fontStyle: "italic"
+    }
+  }, "\"", f.note, "\""))), calDayData.stretchCount > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: T.glass,
+      border: "1px solid rgba(183,148,244,0.3)",
+      borderRadius: 12,
+      padding: "10px 14px",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#b794f4"
+    }
+  }, "\uD83E\uDDD8 Stretching"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      marginTop: 2
+    }
+  }, calDayData.stretchCount, " stretches completed"))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6,
@@ -5965,8 +6307,10 @@ function StatsView({
     year: wCalYear,
     month: wCalMonth,
     completedDates: completedDates,
+    freeDates: new Set(freeLogs.map(f => f.date)),
     accent: "#4ecdc4",
-    T: T
+    T: T,
+    onDayTap: d => setCalDayModal(d)
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -5977,13 +6321,16 @@ function StatsView({
     }
   }, [{
     bg: "#4ecdc4",
-    label: "Trained"
+    label: "Workout"
+  }, {
+    bg: "#ff6b6b",
+    label: "Free"
+  }, {
+    bg: "linear-gradient(135deg,#ff6b6b,#4ecdc4)",
+    label: "Both"
   }, {
     outline: true,
     label: "Today"
-  }, {
-    bg: "rgba(255,255,255,0.06)",
-    label: "Rest"
   }].map((l, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
@@ -6137,7 +6484,8 @@ function StatsView({
     month: sCalMonth,
     completedDates: stretchDays,
     accent: "#b794f4",
-    T: T
+    T: T,
+    onDayTap: d => setCalDayModal(d)
   }), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
@@ -6315,7 +6663,7 @@ function StatsView({
         marginTop: 3
       }
     }, pr.date));
-  }))));
+  })))));
 }
 
 // ─── Rest Timer ────────────────────────────────────────────────────────────────
@@ -7383,6 +7731,278 @@ function ExerciseSection({
 
 // ─── Main App ──────────────────────────────────────────────────────────────────
 
+// ─── Free Workout Sheet ────────────────────────────────────────────────────────
+function FreeWorkoutSheet({
+  open,
+  onClose,
+  onSave,
+  T,
+  dark
+}) {
+  const [selected, setSelected] = useState(null);
+  const [phase, setPhase] = useState("pick"); // "pick" | "active" | "done"
+  const [elapsed, setElapsed] = useState(0);
+  const [note, setNote] = useState("");
+  const ivl = useRef(null);
+  useEffect(() => {
+    if (!open) {
+      setSelected(null);
+      setPhase("pick");
+      setElapsed(0);
+      setNote("");
+    }
+  }, [open]);
+  useEffect(() => {
+    if (phase === "active") {
+      ivl.current = setInterval(() => setElapsed(e => e + 1), 1000);
+    } else clearInterval(ivl.current);
+    return () => clearInterval(ivl.current);
+  }, [phase]);
+  function finish() {
+    clearInterval(ivl.current);
+    setPhase("done");
+  }
+  function save() {
+    const type = FREE_WORKOUT_TYPES.find(t => t.id === selected);
+    onSave({
+      id: rndId(),
+      date: getTodayKey(),
+      type: selected,
+      label: type.label,
+      emoji: type.emoji,
+      color: type.color,
+      duration: elapsed,
+      note,
+      startedAt: new Date().toISOString()
+    });
+    onClose();
+  }
+  if (!open) return null;
+  const type = FREE_WORKOUT_TYPES.find(t => t.id === selected);
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 998,
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      background: "rgba(0,0,0,0.6)",
+      backdropFilter: "blur(4px)"
+    },
+    onClick: e => {
+      if (e.target === e.currentTarget) onClose();
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: T.sheetBg,
+      borderRadius: "24px 24px 0 0",
+      width: "100%",
+      maxWidth: 540,
+      border: `1px solid ${T.glassBorder}`,
+      boxShadow: "0 -8px 40px rgba(0,0,0,0.5)",
+      maxHeight: "88vh",
+      display: "flex",
+      flexDirection: "column"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 18px 12px",
+      borderBottom: `1px solid ${T.divider}`,
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 36,
+      height: 4,
+      background: T.glassBorder,
+      borderRadius: 2,
+      margin: "0 auto 12px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: 17,
+      fontWeight: 800,
+      color: T.text
+    }
+  }, phase === "pick" ? "Free Workout" : phase === "active" ? `${type?.emoji} ${type?.label}` : type ? `${type.emoji} ${type.label} — Done!` : "Done!")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      overflowY: "auto",
+      padding: "14px 18px 32px",
+      flex: 1
+    }
+  }, phase === "pick" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: 3,
+      textTransform: "uppercase",
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      marginBottom: 12
+    }
+  }, "What are you doing?"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "1fr 1fr",
+      gap: 8,
+      marginBottom: 20
+    }
+  }, FREE_WORKOUT_TYPES.map(t => /*#__PURE__*/React.createElement("button", {
+    key: t.id,
+    onClick: () => setSelected(t.id),
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      padding: "12px 14px",
+      borderRadius: 14,
+      border: `2px solid ${selected === t.id ? t.color : T.glassBorder}`,
+      background: selected === t.id ? `${t.color}18` : T.glass,
+      cursor: "pointer",
+      textAlign: "left",
+      transition: "all 0.15s"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 22,
+      flexShrink: 0
+    }
+  }, t.emoji), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: 13,
+      fontWeight: 700,
+      color: selected === t.id ? t.color : T.text
+    }
+  }, t.label)))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => selected && setPhase("active"),
+    style: {
+      width: "100%",
+      padding: "14px",
+      borderRadius: 16,
+      background: selected ? FREE_WORKOUT_TYPES.find(t => t.id === selected)?.color : "rgba(255,255,255,0.1)",
+      border: "none",
+      color: selected ? "#0d0d14" : T.textSub,
+      fontSize: 15,
+      fontWeight: 800,
+      fontFamily: "'Outfit', sans-serif",
+      cursor: selected ? "pointer" : "default",
+      transition: "all 0.2s"
+    }
+  }, selected ? `▶ Start ${FREE_WORKOUT_TYPES.find(t => t.id === selected)?.label}` : "Select a workout type")), phase === "active" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 72,
+      marginBottom: 8
+    }
+  }, type?.emoji), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'DM Mono', monospace",
+      fontSize: 52,
+      fontWeight: 700,
+      color: type?.color,
+      letterSpacing: 2,
+      marginBottom: 4
+    }
+  }, fmtDur(elapsed)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      marginBottom: 32
+    }
+  }, "In progress \u2014 keep going! \uD83D\uDCAA"), /*#__PURE__*/React.createElement("button", {
+    onClick: finish,
+    style: {
+      width: "100%",
+      padding: "16px",
+      borderRadius: 16,
+      background: "#4ade80",
+      border: "none",
+      color: "#0d0d14",
+      fontSize: 15,
+      fontWeight: 800,
+      fontFamily: "'Outfit', sans-serif",
+      cursor: "pointer"
+    }
+  }, "\u25A0 Finish Workout")), phase === "done" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 56,
+      marginBottom: 8
+    }
+  }, "\uD83C\uDF89"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: 22,
+      fontWeight: 800,
+      color: type?.color,
+      marginBottom: 4
+    }
+  }, fmtDur(elapsed)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace"
+    }
+  }, "Great work!")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 16
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: 3,
+      textTransform: "uppercase",
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      marginBottom: 8
+    }
+  }, "Add a note"), /*#__PURE__*/React.createElement("textarea", {
+    defaultValue: note,
+    onChange: e => setNote(e.target.value),
+    placeholder: "How did it go? Distance, pace, how you felt...",
+    rows: 3,
+    style: {
+      width: "100%",
+      background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+      border: `1px solid ${T.glassBorder}`,
+      borderRadius: 12,
+      color: T.text,
+      padding: "10px 12px",
+      fontSize: 12,
+      fontFamily: "'DM Mono', monospace",
+      resize: "none",
+      outline: "none",
+      lineHeight: 1.6,
+      boxSizing: "border-box"
+    }
+  })), /*#__PURE__*/React.createElement("button", {
+    onClick: save,
+    style: {
+      width: "100%",
+      padding: "14px",
+      borderRadius: 16,
+      background: type?.color,
+      border: "none",
+      color: "#0d0d14",
+      fontSize: 15,
+      fontWeight: 800,
+      fontFamily: "'Outfit', sans-serif",
+      cursor: "pointer"
+    }
+  }, "Save Workout")))));
+}
+
 // ─── PlansSheet (proper component — no hooks in conditionals) ─────────────────
 function PlansSheet({
   plans,
@@ -7935,74 +8555,81 @@ function PinScreen({
   const isSetup = !savedPin;
   const [input, setInput] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [step, setStep] = useState(isSetup ? "set" : "enter"); // "set"|"confirm"|"enter"
+  const [step, setStep] = useState(isSetup ? "set" : "enter");
   const [shake, setShake] = useState(false);
   const [hint, setHint] = useState(isSetup ? "Create a PIN" : "Enter PIN");
+  const [showPin, setShowPin] = useState(false); // fallback to PIN pad
+
+  // Try Face ID / biometrics on mount
+  useEffect(() => {
+    if (isSetup) return; // need to create PIN first
+    tryFaceID();
+  }, []);
+  async function tryFaceID() {
+    if (!window.PublicKeyCredential) return; // not supported
+    try {
+      // Use a simple credential assertion — we store a credential ID in localStorage
+      const credId = localStorage.getItem("wt-cred-id");
+      if (!credId) {
+        setShowPin(true);
+        return;
+      }
+      const challenge = crypto.getRandomValues(new Uint8Array(32));
+      await navigator.credentials.get({
+        publicKey: {
+          challenge,
+          allowCredentials: [{
+            id: Uint8Array.from(atob(credId), c => c.charCodeAt(0)),
+            type: "public-key"
+          }],
+          userVerification: "required",
+          timeout: 30000
+        }
+      });
+      onUnlock();
+    } catch (e) {
+      // Face ID cancelled or failed — fall back to PIN
+      setShowPin(true);
+    }
+  }
+  async function registerFaceID() {
+    if (!window.PublicKeyCredential) return false;
+    try {
+      const challenge = crypto.getRandomValues(new Uint8Array(32));
+      const userId = crypto.getRandomValues(new Uint8Array(16));
+      const cred = await navigator.credentials.create({
+        publicKey: {
+          challenge,
+          rp: {
+            name: "Workout Tracker"
+          },
+          user: {
+            id: userId,
+            name: "user",
+            displayName: "User"
+          },
+          pubKeyCredParams: [{
+            alg: -7,
+            type: "public-key"
+          }],
+          authenticatorSelection: {
+            userVerification: "required",
+            authenticatorAttachment: "platform"
+          },
+          timeout: 30000
+        }
+      });
+      const id = btoa(String.fromCharCode(...new Uint8Array(cred.rawId)));
+      localStorage.setItem("wt-cred-id", id);
+      return true;
+    } catch {
+      return false;
+    }
+  }
   function triggerShake() {
     setShake(true);
     setTimeout(() => setShake(false), 500);
   }
-  function press(digit) {
-    if (step === "set") {
-      const next = input + digit;
-      if (next.length <= 6) setInput(next);
-      if (next.length === 4) {
-        // wait briefly then move to confirm
-        setTimeout(() => {
-          setConfirm("");
-          setStep("confirm");
-          setHint("Confirm PIN");
-          setInput("");
-        }, 200);
-      }
-    } else if (step === "confirm") {
-      const next = input + digit;
-      if (next.length <= 6) setInput(next);
-      if (next.length === confirm.length || next.length === 4) {
-        if (next === (confirm || next)) {
-          // need 4 digits for confirm — store confirm value first press
-          if (!confirm) {
-            setConfirm(next);
-            setInput("");
-            return;
-          }
-          if (next === confirm) {
-            savePin(confirm);
-            setTimeout(() => onUnlock(), 200);
-          } else {
-            triggerShake();
-            setHint("PINs don't match — try again");
-            setTimeout(() => {
-              setInput("");
-              setConfirm("");
-              setStep("set");
-              setHint("Create a PIN");
-            }, 800);
-          }
-        }
-      }
-    } else {
-      const next = input + digit;
-      if (next.length <= 6) setInput(next);
-      if (next.length === savedPin.length) {
-        if (next === savedPin) {
-          setTimeout(() => onUnlock(), 150);
-        } else {
-          triggerShake();
-          setHint("Incorrect PIN");
-          setTimeout(() => {
-            setInput("");
-            setHint("Enter PIN");
-          }, 800);
-        }
-      }
-    }
-  }
-  function pressDelete() {
-    setInput(p => p.slice(0, -1));
-  }
-
-  // Actual confirm step logic — simplified to always use 4 digits
   function handlePress(digit) {
     const next = input + digit;
     if (next.length > 4) return;
@@ -8019,6 +8646,10 @@ function PinScreen({
       if (next === confirm) {
         savePin(confirm);
         setHint("✓ PIN set!");
+        // Try to register Face ID after PIN is set
+        registerFaceID().then(ok => {
+          if (ok) setHint("✓ Face ID registered!");
+        });
         setTimeout(() => onUnlock(), 400);
       } else {
         triggerShake();
@@ -8031,7 +8662,6 @@ function PinScreen({
         }, 900);
       }
     } else {
-      // entering
       if (next === savedPin) {
         setHint("✓");
         setTimeout(() => onUnlock(), 200);
@@ -8045,10 +8675,74 @@ function PinScreen({
       }
     }
   }
+  function pressDelete() {
+    setInput(p => p.slice(0, -1));
+  }
   const dots = Array.from({
     length: 4
   }, (_, i) => i < input.length);
   const keys = [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"], ["", "0", "⌫"]];
+
+  // Face ID waiting screen
+  if (!isSetup && !showPin) return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 9999,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      background: T.bgGrad
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginBottom: 40,
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: 22,
+      fontWeight: 800,
+      color: T.text,
+      letterSpacing: -0.5
+    }
+  }, "Workout Tracker"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      color: T.textSub,
+      letterSpacing: 4,
+      textTransform: "uppercase",
+      fontFamily: "'DM Mono', monospace",
+      marginTop: 4
+    }
+  }, "7-day split")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 72,
+      marginBottom: 16
+    }
+  }, "\uD83D\uDD12"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'DM Mono', monospace",
+      fontSize: 13,
+      color: T.textSub,
+      marginBottom: 32,
+      letterSpacing: 1
+    }
+  }, "Authenticating\u2026"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowPin(true),
+    style: {
+      background: "transparent",
+      border: "none",
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      fontSize: 11,
+      cursor: "pointer",
+      letterSpacing: 1,
+      textDecoration: "underline"
+    }
+  }, "Use PIN instead"));
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "fixed",
@@ -8060,16 +8754,7 @@ function PinScreen({
       justifyContent: "center",
       background: T.bgGrad
     }
-  }, /*#__PURE__*/React.createElement("style", null, `
-        @keyframes shake {
-          0%,100%{transform:translateX(0)}
-          20%{transform:translateX(-8px)}
-          40%{transform:translateX(8px)}
-          60%{transform:translateX(-8px)}
-          80%{transform:translateX(4px)}
-        }
-        .pin-shake { animation: shake 0.45s ease; }
-      `), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("style", null, `@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-10px)}80%{transform:translateX(5px)}}.pin-shake{animation:shake 0.45s ease;}`), /*#__PURE__*/React.createElement("div", {
     style: {
       marginBottom: 40,
       textAlign: "center"
@@ -8104,25 +8789,25 @@ function PinScreen({
     className: shake ? "pin-shake" : "",
     style: {
       display: "flex",
-      gap: 16,
-      marginBottom: 40
+      gap: 18,
+      marginBottom: 44
     }
   }, dots.map((filled, i) => /*#__PURE__*/React.createElement("div", {
     key: i,
     style: {
-      width: 14,
-      height: 14,
+      width: 16,
+      height: 16,
       borderRadius: "50%",
       background: filled ? "#4ecdc4" : "transparent",
       border: `2px solid ${filled ? "#4ecdc4" : "rgba(255,255,255,0.25)"}`,
-      transition: "background 0.15s, border-color 0.15s"
+      transition: "background 0.15s,border-color 0.15s"
     }
   }))), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "grid",
       gridTemplateColumns: "repeat(3,1fr)",
-      gap: 12,
-      width: 240
+      gap: 14,
+      width: 280
     }
   }, keys.flat().map((k, i) => {
     if (!k) return /*#__PURE__*/React.createElement("div", {
@@ -8133,26 +8818,46 @@ function PinScreen({
       key: k,
       onClick: () => isDelete ? pressDelete() : handlePress(k),
       style: {
-        width: 72,
-        height: 72,
+        width: 84,
+        height: 84,
         borderRadius: "50%",
-        border: `1px solid ${isDelete ? "transparent" : "rgba(255,255,255,0.12)"}`,
-        background: isDelete ? "transparent" : "rgba(255,255,255,0.07)",
+        border: `1px solid ${isDelete ? "transparent" : "rgba(255,255,255,0.15)"}`,
+        background: isDelete ? "transparent" : "rgba(255,255,255,0.08)",
         color: T.text,
-        fontSize: isDelete ? 22 : 24,
+        fontSize: isDelete ? 26 : 28,
         fontFamily: "'Outfit', sans-serif",
         fontWeight: 600,
         cursor: "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        WebkitTapHighlightColor: "transparent",
-        transition: "background 0.1s"
+        WebkitTapHighlightColor: "rgba(255,255,255,0.2)",
+        transition: "background 0.1s",
+        touchAction: "manipulation"
       },
-      onTouchStart: e => e.currentTarget.style.background = isDelete ? "rgba(255,255,255,0.05)" : "rgba(255,255,255,0.15)",
-      onTouchEnd: e => e.currentTarget.style.background = isDelete ? "transparent" : "rgba(255,255,255,0.07)"
+      onTouchStart: e => e.currentTarget.style.background = isDelete ? "rgba(255,255,255,0.06)" : "rgba(255,255,255,0.2)",
+      onTouchEnd: e => e.currentTarget.style.background = isDelete ? "transparent" : "rgba(255,255,255,0.08)"
     }, k);
-  })), step === "enter" && /*#__PURE__*/React.createElement("button", {
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      gap: 12,
+      marginTop: 44
+    }
+  }, step === "enter" && window.PublicKeyCredential && /*#__PURE__*/React.createElement("button", {
+    onClick: tryFaceID,
+    style: {
+      background: "transparent",
+      border: "none",
+      color: "#4ecdc4",
+      fontFamily: "'DM Mono', monospace",
+      fontSize: 11,
+      cursor: "pointer",
+      letterSpacing: 1
+    }
+  }, "Use Face ID instead"), step === "enter" && /*#__PURE__*/React.createElement("button", {
     onClick: () => {
       savePin("");
       setStep("set");
@@ -8161,7 +8866,6 @@ function PinScreen({
       setHint("Create a new PIN");
     },
     style: {
-      marginTop: 40,
       background: "transparent",
       border: "none",
       color: T.textSub,
@@ -8170,7 +8874,7 @@ function PinScreen({
       cursor: "pointer",
       letterSpacing: 1
     }
-  }, "Forgot PIN? Reset"));
+  }, "Forgot PIN? Reset")));
 }
 function WorkoutTracker() {
   const [locked, setLocked] = useState(true);
@@ -8208,6 +8912,8 @@ function WorkoutTracker() {
   const [panelEx, setPanelEx] = useState(null); // {ex, accent} for exercise info panel
   const [libAddTarget, setLibAddTarget] = useState(null); // exercise from library to add to a workout
   const [stretchLogs, setStretchLogs] = useState(loadStretchLogs);
+  const [freeLogs, setFreeLogs] = useState(loadFreeLogs);
+  const [freeOpen, setFreeOpen] = useState(false);
   function onToggleStretch(date, key) {
     setStretchLogs(prev => {
       const day = {
@@ -8735,7 +9441,7 @@ function WorkoutTracker() {
     },
     dark: dark
   });
-  return /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: "100vh",
       background: T.bgGrad,
@@ -8907,7 +9613,17 @@ function WorkoutTracker() {
       cursor: "pointer",
       fontFamily: "'DM Mono', monospace"
     }
-  }, "Delete")))), plansOpen && /*#__PURE__*/React.createElement(PlansSheet, {
+  }, "Delete")))), /*#__PURE__*/React.createElement(FreeWorkoutSheet, {
+    open: freeOpen,
+    onClose: () => setFreeOpen(false),
+    onSave: fw => {
+      const next = [...freeLogs, fw];
+      setFreeLogs(next);
+      saveFreeLogs(next);
+    },
+    T: T,
+    dark: dark
+  }), plansOpen && /*#__PURE__*/React.createElement(PlansSheet, {
     plans: plans,
     workout: workout,
     T: T,
@@ -9094,6 +9810,12 @@ function WorkoutTracker() {
     label: "📁  Workout Plans",
     a: () => {
       setPlansOpen(true);
+      setMenuOpen(false);
+    }
+  }, {
+    label: "➕  Free Workout",
+    a: () => {
+      setFreeOpen(true);
       setMenuOpen(false);
     }
   }, {
@@ -9308,7 +10030,8 @@ function WorkoutTracker() {
     workouts: workouts,
     T: T,
     dark: dark,
-    stretchLogs: stretchLogs
+    stretchLogs: stretchLogs,
+    freeLogs: freeLogs
   }), view === "stretch" && /*#__PURE__*/React.createElement(StretchView, {
     selDay: selDay,
     workouts: workouts,
@@ -9322,75 +10045,235 @@ function WorkoutTracker() {
     dark: dark,
     workouts: workouts,
     onAddToWorkout: onAddToWorkout
-  }), view === "history" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: 22,
-      fontWeight: 800,
-      letterSpacing: -0.5,
-      marginBottom: 2,
-      color: T.text
-    }
-  }, "History"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 8,
-      color: T.textSub,
-      letterSpacing: 3,
-      textTransform: "uppercase",
-      fontFamily: "'DM Mono', monospace",
-      marginBottom: 16
-    }
-  }, "Day ", workout.day, " \u2014 ", workout.title), historyEntries.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      padding: 50,
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      fontSize: 12
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 32,
-      marginBottom: 8
-    }
-  }, "\uD83C\uDF31"), "No sessions logged yet.") : historyEntries.map(([k, log]) => {
-    const dateStr = k.replace(`-${workout.id}`, "");
-    const allEx = [...workout.exercises, ...workout.core],
-      total = allEx.reduce((a, e) => a + (e.sets || 0), 0);
-    const done = Object.values(log.checked || {}).filter(Boolean).length,
-      pct = total ? Math.min(100, Math.round(done / total * 100)) : 0;
-    const prCount = Object.values(log.increased || {}).filter(Boolean).length;
-    const weightLines = [...workout.exercises.map((ex, ei) => ({
-      ex,
-      section: "ex",
-      ei
-    })), ...workout.core.map((ex, ei) => ({
-      ex,
-      section: "core",
-      ei
-    }))].filter(({
-      ex
-    }) => !ex.bodyweight && ex.sets).map(({
-      ex,
-      section,
-      ei
-    }) => {
-      const ws = Array.from({
-        length: ex.sets
-      }, (_, si) => log.weights?.[`${section}-${ei}-${si}`] || "").filter(Boolean);
-      return ws.length ? {
-        name: ex.name,
-        ws
-      } : null;
-    }).filter(Boolean);
-    const isConfirming = deleteConfirm === k;
-    return /*#__PURE__*/React.createElement("div", {
-      key: k,
+  }), view === "history" && (() => {
+    const [histTab, setHistTab] = React.useState("day"); // "day"|"all"
+    // All history across all workouts + free
+    const allEntries = React.useMemo(() => {
+      const plan = [];
+      for (const [k, log] of Object.entries(logs)) {
+        const parts = k.split("-");
+        const dateStr = parts.slice(0, 3).join("-");
+        const dayId = parts.slice(3).join("-");
+        const w = workouts.find(w => w.id === dayId);
+        plan.push({
+          key: k,
+          dateStr,
+          log,
+          workout: w,
+          isFree: false
+        });
+      }
+      const free = freeLogs.map(f => ({
+        key: f.id,
+        dateStr: f.date,
+        free: f,
+        isFree: true
+      }));
+      return [...plan, ...free].sort((a, b) => b.dateStr.localeCompare(a.dateStr));
+    }, [logs, freeLogs, workouts]);
+    return /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "'Outfit', sans-serif",
+        fontSize: 22,
+        fontWeight: 800,
+        letterSpacing: -0.5,
+        marginBottom: 2,
+        color: T.text
+      }
+    }, "History"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        marginBottom: 16
+      }
+    }, [{
+      t: "day",
+      label: `Day ${workout.day}`
+    }, {
+      t: "all",
+      label: "All Workouts"
+    }].map(({
+      t,
+      label
+    }) => /*#__PURE__*/React.createElement("button", {
+      key: t,
+      onClick: () => setHistTab(t),
+      style: {
+        padding: "6px 14px",
+        borderRadius: 20,
+        border: `1px solid ${histTab === t ? workout.tagColor : T.glassBorder}`,
+        background: histTab === t ? `${workout.tagColor}18` : T.glass,
+        color: histTab === t ? workout.tagColor : T.textSub,
+        fontSize: 10,
+        fontFamily: "'DM Mono', monospace",
+        cursor: "pointer"
+      }
+    }, label))), histTab === "all" && /*#__PURE__*/React.createElement("div", null, allEntries.length === 0 && /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center",
+        padding: 50,
+        color: T.textSub,
+        fontFamily: "'DM Mono', monospace",
+        fontSize: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 32,
+        marginBottom: 8
+      }
+    }, "\uD83C\uDF31"), "No sessions logged yet."), allEntries.map(entry => {
+      if (entry.isFree) {
+        const f = entry.free;
+        return /*#__PURE__*/React.createElement("div", {
+          key: f.id,
+          style: {
+            background: T.glass,
+            backdropFilter: "blur(12px)",
+            border: `2px dashed ${f.color}55`,
+            borderRadius: 14,
+            padding: "11px 14px",
+            marginBottom: 8,
+            boxShadow: T.shadow
+          }
+        }, /*#__PURE__*/React.createElement("div", {
+          style: {
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: f.note ? 6 : 0
+          }
+        }, /*#__PURE__*/React.createElement("div", {
+          style: {
+            display: "flex",
+            alignItems: "center",
+            gap: 8
+          }
+        }, /*#__PURE__*/React.createElement("span", {
+          style: {
+            fontSize: 20
+          }
+        }, f.emoji), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+          style: {
+            fontFamily: "'Outfit', sans-serif",
+            fontSize: 13,
+            fontWeight: 700,
+            color: T.text
+          }
+        }, f.label), /*#__PURE__*/React.createElement("div", {
+          style: {
+            fontSize: 9,
+            color: f.color,
+            fontFamily: "'DM Mono', monospace",
+            marginTop: 1
+          }
+        }, "Free Workout \xB7 ", f.date))), /*#__PURE__*/React.createElement("div", {
+          style: {
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 16,
+            fontWeight: 700,
+            color: f.color
+          }
+        }, fmtDur(f.duration))), f.note && /*#__PURE__*/React.createElement("div", {
+          style: {
+            fontSize: 10,
+            color: T.textSub,
+            fontFamily: "'DM Mono', monospace",
+            lineHeight: 1.5,
+            borderTop: `1px solid ${T.divider}`,
+            paddingTop: 6,
+            marginTop: 4,
+            fontStyle: "italic"
+          }
+        }, "\"", f.note, "\""));
+      }
+      const {
+        key: k,
+        log,
+        workout: w,
+        dateStr
+      } = entry;
+      if (!w) return null;
+      const allEx = [...w.exercises, ...w.core],
+        total = allEx.reduce((a, e) => a + (e.sets || 0), 0);
+      const done = Object.values(log.checked || {}).filter(Boolean).length,
+        pct = total ? Math.min(100, Math.round(done / total * 100)) : 0;
+      const prCount = Object.values(log.increased || {}).filter(Boolean).length;
+      return /*#__PURE__*/React.createElement("div", {
+        key: k,
+        style: {
+          background: T.glass,
+          backdropFilter: "blur(12px)",
+          border: `1px solid ${T.glassBorder}`,
+          borderLeft: `3px solid ${w.tagColor}`,
+          borderRadius: 14,
+          padding: "11px 14px",
+          marginBottom: 8,
+          boxShadow: T.shadow
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 4
+        }
+      }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 13,
+          fontWeight: 700,
+          fontFamily: "'Outfit', sans-serif",
+          color: T.text
+        }
+      }, dateStr), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 9,
+          color: w.tagColor,
+          fontFamily: "'DM Mono', monospace",
+          marginTop: 1
+        }
+      }, w.emoji, " Day ", w.day, ": ", w.title)), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 8,
+          alignItems: "center"
+        }
+      }, prCount > 0 && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 9,
+          color: w.tagColor,
+          background: `${w.tagColor}18`,
+          padding: "2px 8px",
+          borderRadius: 20,
+          fontFamily: "'DM Mono', monospace"
+        }
+      }, "\uD83D\uDD3A ", prCount), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 13,
+          fontWeight: 700,
+          color: w.tagColor,
+          fontFamily: "'DM Mono', monospace"
+        }
+      }, pct, "%"))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          height: 3,
+          background: T.pill,
+          borderRadius: 2,
+          overflow: "hidden"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: `${pct}%`,
+          height: "100%",
+          background: `linear-gradient(90deg,${w.tagColor}88,${w.tagColor})`,
+          borderRadius: 2
+        }
+      })));
+    })), histTab === "day" && /*#__PURE__*/React.createElement("div", null, freeLogs.filter(f => f.date === activeDate).map(f => /*#__PURE__*/React.createElement("div", {
+      key: f.id,
       style: {
         background: T.glass,
         backdropFilter: "blur(12px)",
-        border: `1px solid ${T.glassBorder}`,
-        borderLeft: `3px solid ${workout.tagColor}`,
+        border: `2px dashed ${f.color}55`,
         borderRadius: 14,
         padding: "11px 14px",
         marginBottom: 8,
@@ -9400,126 +10283,232 @@ function WorkoutTracker() {
       style: {
         display: "flex",
         justifyContent: "space-between",
-        alignItems: "flex-start",
-        marginBottom: 4
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        flex: 1,
-        minWidth: 0
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 13,
-        fontWeight: 700,
-        fontFamily: "'Outfit', sans-serif",
-        color: T.text
-      }
-    }, dateStr), (log.startedAt || log.finishedAt) && /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 9,
-        color: T.textSub,
-        fontFamily: "'DM Mono', monospace",
-        marginTop: 1
-      }
-    }, log.startedAt && `Started ${fmtTime(log.startedAt)}`, log.startedAt && log.finishedAt && " · ", log.finishedAt && `Finished ${fmtTime(log.finishedAt)}`)), /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        gap: 6,
         alignItems: "center",
-        flexShrink: 0,
-        marginLeft: 8
+        marginBottom: f.note ? 6 : 0
       }
-    }, log.duration && /*#__PURE__*/React.createElement("span", {
+    }, /*#__PURE__*/React.createElement("div", {
       style: {
-        fontSize: 9,
-        color: T.textSub,
-        fontFamily: "'DM Mono', monospace"
-      }
-    }, "\u23F1 ", fmtDur(log.duration)), prCount > 0 && /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 9,
-        color: workout.tagColor,
-        background: `${workout.tagColor}18`,
-        padding: "2px 8px",
-        borderRadius: 20,
-        fontFamily: "'DM Mono', monospace"
-      }
-    }, "\uD83D\uDD3A ", prCount), /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 13,
-        fontWeight: 700,
-        color: workout.tagColor,
-        fontFamily: "'DM Mono', monospace"
-      }
-    }, pct, "%"), /*#__PURE__*/React.createElement("button", {
-      onClick: () => setDeleteConfirm(k),
-      title: "Delete session",
-      style: {
-        width: 24,
-        height: 24,
-        borderRadius: "50%",
-        border: "1px solid rgba(255,107,107,0.3)",
-        background: "rgba(255,107,107,0.1)",
-        color: "#ff6b6b",
-        fontSize: 11,
-        cursor: "pointer",
         display: "flex",
         alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0
-      }
-    }, "\uD83D\uDDD1"))), /*#__PURE__*/React.createElement("div", {
-      style: {
-        height: 3,
-        background: T.pill,
-        borderRadius: 2,
-        marginBottom: weightLines.length || log.note ? 8 : 0,
-        overflow: "hidden"
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        width: `${pct}%`,
-        height: "100%",
-        background: `linear-gradient(90deg,${workout.tagColor}88,${workout.tagColor})`,
-        borderRadius: 2
-      }
-    })), weightLines.length > 0 && /*#__PURE__*/React.createElement("div", {
-      style: {
-        display: "flex",
-        flexDirection: "column",
-        gap: 2,
-        marginBottom: log.note ? 6 : 0
-      }
-    }, weightLines.map((s, i) => /*#__PURE__*/React.createElement("div", {
-      key: i,
-      style: {
-        display: "flex",
-        justifyContent: "space-between",
-        fontSize: 10,
-        fontFamily: "'DM Mono', monospace"
+        gap: 8
       }
     }, /*#__PURE__*/React.createElement("span", {
       style: {
-        color: T.textSub
+        fontSize: 20
       }
-    }, s.name), /*#__PURE__*/React.createElement("span", {
+    }, f.emoji), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
       style: {
+        fontFamily: "'Outfit', sans-serif",
+        fontSize: 13,
+        fontWeight: 700,
         color: T.text
       }
-    }, s.ws.join(" · "))))), log.note && /*#__PURE__*/React.createElement("div", {
+    }, f.label), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 9,
+        color: f.color,
+        fontFamily: "'DM Mono', monospace",
+        marginTop: 1
+      }
+    }, "Free Workout \xB7 ", f.date))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "'DM Mono', monospace",
+        fontSize: 16,
+        fontWeight: 700,
+        color: f.color
+      }
+    }, fmtDur(f.duration))), f.note && /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 10,
         color: T.textSub,
-        fontStyle: "italic",
-        marginTop: 7,
-        borderTop: `1px solid ${T.divider}`,
-        paddingTop: 7,
         fontFamily: "'DM Mono', monospace",
-        lineHeight: 1.5
+        lineHeight: 1.5,
+        borderTop: `1px solid ${T.divider}`,
+        paddingTop: 6,
+        marginTop: 4,
+        fontStyle: "italic"
       }
-    }, "\"", log.note, "\""));
-  })), view === "workout" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    }, "\"", f.note, "\""))), historyEntries.length === 0 ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        textAlign: "center",
+        padding: 50,
+        color: T.textSub,
+        fontFamily: "'DM Mono', monospace",
+        fontSize: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 32,
+        marginBottom: 8
+      }
+    }, "\uD83C\uDF31"), "No sessions logged yet.") : historyEntries.map(([k, log]) => {
+      const dateStr = k.replace(`-${workout.id}`, "");
+      const allEx = [...workout.exercises, ...workout.core],
+        total = allEx.reduce((a, e) => a + (e.sets || 0), 0);
+      const done = Object.values(log.checked || {}).filter(Boolean).length,
+        pct = total ? Math.min(100, Math.round(done / total * 100)) : 0;
+      const prCount = Object.values(log.increased || {}).filter(Boolean).length;
+      const weightLines = [...workout.exercises.map((ex, ei) => ({
+        ex,
+        section: "ex",
+        ei
+      })), ...workout.core.map((ex, ei) => ({
+        ex,
+        section: "core",
+        ei
+      }))].filter(({
+        ex
+      }) => !ex.bodyweight && ex.sets).map(({
+        ex,
+        section,
+        ei
+      }) => {
+        const ws = Array.from({
+          length: ex.sets
+        }, (_, si) => log.weights?.[`${section}-${ei}-${si}`] || "").filter(Boolean);
+        return ws.length ? {
+          name: ex.name,
+          ws
+        } : null;
+      }).filter(Boolean);
+      const isConfirming = deleteConfirm === k;
+      return /*#__PURE__*/React.createElement("div", {
+        key: k,
+        style: {
+          background: T.glass,
+          backdropFilter: "blur(12px)",
+          border: `1px solid ${T.glassBorder}`,
+          borderLeft: `3px solid ${workout.tagColor}`,
+          borderRadius: 14,
+          padding: "11px 14px",
+          marginBottom: 8,
+          boxShadow: T.shadow
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 4
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 13,
+          fontWeight: 700,
+          fontFamily: "'Outfit', sans-serif",
+          color: T.text
+        }
+      }, dateStr), (log.startedAt || log.finishedAt) && /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 9,
+          color: T.textSub,
+          fontFamily: "'DM Mono', monospace",
+          marginTop: 1
+        }
+      }, log.startedAt && `Started ${fmtTime(log.startedAt)}`, log.startedAt && log.finishedAt && " · ", log.finishedAt && `Finished ${fmtTime(log.finishedAt)}`)), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 6,
+          alignItems: "center",
+          flexShrink: 0,
+          marginLeft: 8
+        }
+      }, log.duration && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 9,
+          color: T.textSub,
+          fontFamily: "'DM Mono', monospace"
+        }
+      }, "\u23F1 ", fmtDur(log.duration)), prCount > 0 && /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 9,
+          color: workout.tagColor,
+          background: `${workout.tagColor}18`,
+          padding: "2px 8px",
+          borderRadius: 20,
+          fontFamily: "'DM Mono', monospace"
+        }
+      }, "\uD83D\uDD3A ", prCount), /*#__PURE__*/React.createElement("span", {
+        style: {
+          fontSize: 13,
+          fontWeight: 700,
+          color: workout.tagColor,
+          fontFamily: "'DM Mono', monospace"
+        }
+      }, pct, "%"), /*#__PURE__*/React.createElement("button", {
+        onClick: () => setDeleteConfirm(k),
+        title: "Delete session",
+        style: {
+          width: 24,
+          height: 24,
+          borderRadius: "50%",
+          border: "1px solid rgba(255,107,107,0.3)",
+          background: "rgba(255,107,107,0.1)",
+          color: "#ff6b6b",
+          fontSize: 11,
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0
+        }
+      }, "\uD83D\uDDD1"))), /*#__PURE__*/React.createElement("div", {
+        style: {
+          height: 3,
+          background: T.pill,
+          borderRadius: 2,
+          marginBottom: weightLines.length || log.note ? 8 : 0,
+          overflow: "hidden"
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: `${pct}%`,
+          height: "100%",
+          background: `linear-gradient(90deg,${workout.tagColor}88,${workout.tagColor})`,
+          borderRadius: 2
+        }
+      })), weightLines.length > 0 && /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          marginBottom: log.note ? 6 : 0
+        }
+      }, weightLines.map((s, i) => /*#__PURE__*/React.createElement("div", {
+        key: i,
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          fontSize: 10,
+          fontFamily: "'DM Mono', monospace"
+        }
+      }, /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: T.textSub
+        }
+      }, s.name), /*#__PURE__*/React.createElement("span", {
+        style: {
+          color: T.text
+        }
+      }, s.ws.join(" · "))))), log.note && /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 10,
+          color: T.textSub,
+          fontStyle: "italic",
+          marginTop: 7,
+          borderTop: `1px solid ${T.divider}`,
+          paddingTop: 7,
+          fontFamily: "'DM Mono', monospace",
+          lineHeight: 1.5
+        }
+      }, "\"", log.note, "\""));
+    })));
+  })(), view === "workout" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       background: T.glass,
       backdropFilter: "blur(16px)",
@@ -9906,7 +10895,7 @@ function WorkoutTracker() {
       letterSpacing: 0.5,
       marginTop: 1
     }
-  }, "REST")));
+  }, "REST"))));
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(React.createElement(WorkoutTracker));</script></body></html>
