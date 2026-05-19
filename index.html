@@ -10837,6 +10837,7 @@ function WorkoutTracker() {
       fontFamily: "'DM Mono', monospace"
     }
   }, "Session Notes"), /*#__PURE__*/React.createElement("textarea", {
+    key: logKey,
     defaultValue: note,
     onChange: e => setNote(e.target.value),
     onBlur: onSaveNote,
