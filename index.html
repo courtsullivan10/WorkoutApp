@@ -1422,6 +1422,19 @@ const LOGS_KEY = "wt-v4-logs",
   STRETCH_LOGS_KEY = "wt-stretch-logs",
   PLANS_KEY = "wt-plans",
   FREE_LOGS_KEY = "wt-free-logs";
+const CHALLENGES_KEY = "wt-challenges";
+const loadChallenges = () => {
+  try {
+    return JSON.parse(localStorage.getItem(CHALLENGES_KEY) || "[]");
+  } catch {
+    return [];
+  }
+};
+const saveChallenges = c => {
+  try {
+    localStorage.setItem(CHALLENGES_KEY, JSON.stringify(c));
+  } catch {}
+};
 const loadFreeLogs = () => {
   try {
     return JSON.parse(localStorage.getItem(FREE_LOGS_KEY) || "[]");
@@ -8571,9 +8584,11 @@ function PinScreen({
     tryFaceID();
   }, []);
   async function tryFaceID() {
-    if (!window.PublicKeyCredential) return; // not supported
+    if (!window.PublicKeyCredential) {
+      setShowPin(true);
+      return;
+    }
     try {
-      // Use a simple credential assertion — we store a credential ID in localStorage
       const credId = localStorage.getItem("wt-cred-id");
       if (!credId) {
         setShowPin(true);
@@ -8688,7 +8703,8 @@ function PinScreen({
   const keys = [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"], ["", "0", "⌫"]];
 
   // Face ID waiting screen
-  if (!isSetup && !showPin) return /*#__PURE__*/React.createElement("div", {
+  const hasCred = !!localStorage.getItem("wt-cred-id");
+  if (!isSetup && !showPin && hasCred) return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "fixed",
       inset: 0,
@@ -8734,7 +8750,7 @@ function PinScreen({
       marginBottom: 32,
       letterSpacing: 1
     }
-  }, "Authenticating\u2026"), /*#__PURE__*/React.createElement("button", {
+  }, "Authenticating with Face ID\u2026"), /*#__PURE__*/React.createElement("button", {
     onClick: () => setShowPin(true),
     style: {
       background: "transparent",
@@ -9239,8 +9255,1104 @@ function HistoryView({
     w: workout
   }))));
 }
+
+// ─── Challenge View ────────────────────────────────────────────────────────────
+function ChallengeView({
+  T,
+  dark
+}) {
+  const [challenges, setChallenges] = useState(loadChallenges);
+  const [uploading, setUploading] = useState(false);
+  const [parsing, setParsing] = useState(false);
+  const [selected, setSelected] = useState(null); // challenge id being viewed
+  const [customEntry, setCustomEntry] = useState({}); // {exerciseId: string}
+  const [createOpen, setCreateOpen] = useState(false);
+  const [manualName, setManualName] = useState("");
+  const [manualExercises, setManualExercises] = useState([{
+    name: "",
+    goal: 0
+  }]);
+  const [restartConfirm, setRestartConfirm] = useState(null);
+  const fileRef = useRef(null);
+  function saveAll(next) {
+    setChallenges(next);
+    saveChallenges(next);
+  }
+  const [textInput, setTextInput] = useState("");
+  const [textOpen, setTextOpen] = useState(false);
+  const [parseError, setParseError] = useState("");
+
+  // ── Local challenge text parser — no API needed ───────────────────────────
+  function parseChallenge(text) {
+    if (!text.trim()) return;
+    setParseError("");
+    const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
+
+    // Step 1: detect challenge name
+    let name = "Challenge";
+    let startIdx = 0;
+    if (lines[0] && !/^day\s*\d/i.test(lines[0]) && !/^\d/.test(lines[0])) {
+      name = lines[0].replace(/[#@🏋💪🔥⚡🎯✨]+/g,"").trim() || "Challenge";
+      startIdx = 1;
+    }
+
+    // Step 2: build abbreviation map e.g. "Shoulder Taps (ST)" -> {ST: "Shoulder Taps"}
+    const abbrMap = {};
+    for (let i = startIdx; i < lines.length; i++) {
+      const l = lines[i];
+      if (/^day\s*\d/i.test(l)) break;
+      const m = l.match(/^(.+?)\s*\(([A-Za-z]{1,4})\)\s*$/);
+      if (m) { abbrMap[m[2].toUpperCase()] = m[1].trim(); startIdx = i + 1; }
+    }
+    const hasAbbr = Object.keys(abbrMap).length > 0;
+
+    // Step 3: parse each day into its own entry
+    const allText = lines.slice(startIdx).join(" ");
+    // Split by DAY N, keeping the day number
+    const dayMatches = [...allText.matchAll(/\bDAY\s*(\d+)\b/gi)];
+    if (dayMatches.length === 0) {
+      // Fallback: simple "200 squats" format — single entry
+      const KNOWN = ["squat","lunge","push.?up","pull.?up","crunch","burpee","plank","deadlift","curl","dip","shoulder tap","tricep","bicep","leg raise","mountain climber","hip thrust"];
+      const knownRe = new RegExp(KNOWN.join("|"),"i");
+      const exercises = [];
+      for (const line of text.split(/[\n,;]+/).map(l=>l.trim()).filter(Boolean)) {
+        if (/^(day|#|@|http)/i.test(line)||line.length<2) continue;
+        const m=line.match(/^(\d+)\s+(.+)$/)||line.match(/^(.+?)\s+(\d+)$/);
+        if(!m) continue;
+        const[,a,b]=m; const aNum=parseInt(a),bNum=parseInt(b);
+        if(!isNaN(aNum)&&knownRe.test(b)) exercises.push({id:String(exercises.length),name:b.trim(),goal:aNum,unit:"reps",logged:0});
+        else if(!isNaN(bNum)&&knownRe.test(a)) exercises.push({id:String(exercises.length),name:a.trim(),goal:bNum,unit:"reps",logged:0});
+      }
+      if (exercises.length===0){setParseError("Couldn't parse. Try: '200 Squats, 100 Push-ups' or use Create Manually.");return;}
+      const ch={id:rndId(),name,createdAt:getTodayKey(),exercises};
+      saveAll([...challenges,ch]);setSelected(ch.id);setTextOpen(false);setTextInput("");
+      return;
+    }
+
+    // Build day entries
+    const dayEntries = [];
+    for (let di = 0; di < dayMatches.length; di++) {
+      const dayNum = dayMatches[di][1];
+      const chunkStart = dayMatches[di].index + dayMatches[di][0].length;
+      const chunkEnd = di + 1 < dayMatches.length ? dayMatches[di+1].index : allText.length;
+      const chunk = allText.slice(chunkStart, chunkEnd).trim();
+      const isRest = /^rest\s*day/i.test(chunk);
+      const exercises = [];
+
+      if (isRest) {
+        exercises.push({ id: "rest", name: "Rest Day 😴", goal: 1, unit: "days", logged: 0 });
+      } else if (hasAbbr) {
+        const re = /(\d+)\s*([A-Za-z]{1,4})/g;
+        let m;
+        while ((m = re.exec(chunk)) !== null) {
+          const num = parseInt(m[1]);
+          const abbr = m[2].toUpperCase();
+          if (isNaN(num)||num<=0||num>9999) continue;
+          let exName = abbrMap[abbr];
+          if (!exName) {
+            const found = Object.entries(abbrMap).find(([k])=>abbr.length===1&&k[0]===abbr[0]);
+            if (found) exName = found[1];
+          }
+          if (!exName) continue;
+          exercises.push({ id: String(exercises.length), name: exName, goal: num, unit: "reps", logged: 0 });
+        }
+      }
+
+      if (exercises.length > 0) {
+        dayEntries.push({
+          id: `day-${dayNum}`,
+          label: `Day ${dayNum}`,
+          exercises
+        });
+      }
+    }
+
+    if (dayEntries.length === 0) {
+      setParseError("Couldn't parse any days. Make sure the format includes 'DAY 1 ...' entries.");
+      return;
+    }
+
+    const challenge = {
+      id: rndId(),
+      name,
+      createdAt: getTodayKey(),
+      type: "daily",
+      days: dayEntries
+    };
+    const next = [...challenges, challenge];
+    saveAll(next);
+    setSelected(challenge.id);
+    setTextOpen(false);
+    setTextInput("");
+  }
+
+  // ── Manual create ─────────────────────────────────────────────────────────
+  function createManual() {
+    if (!manualName.trim()) return;
+    const challenge = {
+      id: rndId(),
+      name: manualName.trim(),
+      createdAt: getTodayKey(),
+      exercises: manualExercises.filter(e => e.name.trim()).map((e, i) => ({
+        id: String(i),
+        name: e.name.trim(),
+        goal: Number(e.goal) || 100,
+        unit: "reps",
+        logged: 0
+      }))
+    };
+    const next = [...challenges, challenge];
+    saveAll(next);
+    setSelected(challenge.id);
+    setCreateOpen(false);
+    setManualName("");
+    setManualExercises([{
+      name: "",
+      goal: 0
+    }]);
+  }
+
+  // ── Log progress ──────────────────────────────────────────────────────────
+  function logAmount(challengeId, dayIdOrEx, exerciseIdOrAmount, amountOrUndef) {
+    const isDaily = amountOrUndef !== undefined;
+    const dayId = isDaily ? dayIdOrEx : null;
+    const exerciseId = isDaily ? exerciseIdOrAmount : dayIdOrEx;
+    const amount = isDaily ? amountOrUndef : exerciseIdOrAmount;
+    const next = challenges.map(c => {
+      if (c.id !== challengeId) return c;
+      if (isDaily && c.days) {
+        return { ...c, days: c.days.map(d => {
+          if (d.id !== dayId) return d;
+          return { ...d, exercises: d.exercises.map(e => {
+            if (e.id !== exerciseId) return e;
+            return { ...e, logged: Math.min(e.goal, (e.logged || 0) + amount) };
+          })};
+        })};
+      }
+      return { ...c, exercises: (c.exercises||[]).map(e => {
+        if (e.id !== exerciseId) return e;
+        return { ...e, logged: Math.min(e.goal, (e.logged || 0) + amount) };
+      })};
+    });
+    saveAll(next);
+  }
+  function restart(challengeId) {
+    const next = challenges.map(c => {
+      if (c.id !== challengeId) return c;
+      return {
+        ...c,
+        exercises: (c.exercises||[]).map(e => ({
+          ...e,
+          logged: 0
+        }))
+      };
+    });
+    saveAll(next);
+    setRestartConfirm(null);
+  }
+  function deleteChallenge(challengeId) {
+    const next = challenges.filter(c => c.id !== challengeId);
+    saveAll(next);
+    setSelected(null);
+  }
+  const selChallenge = challenges.find(c => c.id === selected);
+
+  // ── Quick add amounts ─────────────────────────────────────────────────────
+  function quickAmounts(goal) {
+    if (goal <= 50) return [5, 10, 25];
+    if (goal <= 100) return [10, 25, 50];
+    if (goal <= 250) return [25, 50, 100];
+    return [25, 50, 100];
+  }
+
+  // ── Render: challenge detail ───────────────────────────────────────────────
+  if (selChallenge) {
+    const allExercises = selChallenge.type==="daily"
+      ? (selChallenge.days||[]).flatMap(d=>d.exercises)
+      : (selChallenge.exercises||[]);
+    const totalGoal = allExercises.reduce((a, e) => a + e.goal, 0);
+    const totalLogged = allExercises.reduce((a, e) => a + (e.logged || 0), 0);
+    const overallPct = totalGoal > 0 ? Math.round(totalLogged / totalGoal * 100) : 0;
+    const complete = overallPct >= 100;
+    return /*#__PURE__*/React.createElement("div", null, restartConfirm && /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "fixed",
+        inset: 0,
+        zIndex: 1010,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "rgba(0,0,0,0.7)",
+        backdropFilter: "blur(4px)",
+        padding: 20
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: T.sheetBg,
+        borderRadius: 20,
+        padding: "24px 20px",
+        maxWidth: 300,
+        width: "100%",
+        border: `1px solid ${T.glassBorder}`,
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 32,
+        marginBottom: 10
+      }
+    }, "\uD83D\uDD04"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "'Outfit', sans-serif",
+        fontSize: 16,
+        fontWeight: 700,
+        color: T.text,
+        marginBottom: 8
+      }
+    }, "Restart challenge?"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 11,
+        color: T.textSub,
+        fontFamily: "'DM Mono', monospace",
+        marginBottom: 20,
+        lineHeight: 1.5
+      }
+    }, "This will reset all progress back to zero."), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setRestartConfirm(null),
+      style: {
+        flex: 1,
+        padding: "10px",
+        borderRadius: 12,
+        background: T.pill,
+        border: `1px solid ${T.glassBorder}`,
+        color: T.textSub,
+        fontSize: 13,
+        cursor: "pointer",
+        fontFamily: "'DM Mono', monospace"
+      }
+    }, "Cancel"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => restart(restartConfirm),
+      style: {
+        flex: 1,
+        padding: "10px",
+        borderRadius: 12,
+        background: "rgba(255,107,107,0.2)",
+        border: "1px solid rgba(255,107,107,0.4)",
+        color: "#ff6b6b",
+        fontSize: 13,
+        fontWeight: 700,
+        cursor: "pointer",
+        fontFamily: "'DM Mono', monospace"
+      }
+    }, "Reset")))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 16
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setSelected(null),
+      style: {
+        background: "transparent",
+        border: "none",
+        color: T.textSub,
+        cursor: "pointer",
+        fontFamily: "'DM Mono', monospace",
+        fontSize: 12,
+        padding: 0,
+        flexShrink: 0
+      }
+    }, "\u2190 Back"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      defaultValue: selChallenge.name,
+      onBlur: e => {
+        const val = e.target.value.trim();
+        if (val && val !== selChallenge.name) {
+          const next = challenges.map(c => c.id === selChallenge.id ? {
+            ...c,
+            name: val
+          } : c);
+          saveAll(next);
+        }
+      },
+      style: {
+        fontFamily: "'Outfit', sans-serif",
+        fontSize: 18,
+        fontWeight: 800,
+        color: T.text,
+        background: "transparent",
+        border: "none",
+        borderBottom: `1px solid ${T.glassBorder}`,
+        outline: "none",
+        width: "100%",
+        padding: "2px 0"
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 8,
+        color: T.textSub,
+        fontFamily: "'DM Mono', monospace",
+        letterSpacing: 2,
+        marginTop: 2
+      }
+    }, "Started ", selChallenge.createdAt)), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setRestartConfirm(selChallenge.id),
+      style: {
+        padding: "6px 12px",
+        borderRadius: 20,
+        background: "rgba(255,107,107,0.1)",
+        border: "1px solid rgba(255,107,107,0.3)",
+        color: "#ff6b6b",
+        fontSize: 10,
+        fontFamily: "'DM Mono', monospace",
+        cursor: "pointer",
+        flexShrink: 0
+      }
+    }, "\uD83D\uDD04 Restart"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => deleteChallenge(selChallenge.id),
+      style: {
+        width: 28,
+        height: 28,
+        borderRadius: "50%",
+        background: "rgba(255,107,107,0.1)",
+        border: "1px solid rgba(255,107,107,0.3)",
+        color: "#ff6b6b",
+        fontSize: 13,
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0
+      }
+    }, "\uD83D\uDDD1")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: complete ? "rgba(74,222,128,0.1)" : T.glass,
+        backdropFilter: "blur(12px)",
+        border: `1px solid ${complete ? "rgba(74,222,128,0.4)" : T.glassBorder}`,
+        borderRadius: 16,
+        padding: "14px 16px",
+        marginBottom: 16,
+        boxShadow: T.shadow
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 8
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 9,
+        letterSpacing: 3,
+        textTransform: "uppercase",
+        color: T.textSub,
+        fontFamily: "'DM Mono', monospace"
+      }
+    }, complete ? "🎉 Challenge Complete!" : "Overall Progress"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "'DM Mono', monospace",
+        fontSize: 20,
+        fontWeight: 700,
+        color: complete ? "#4ade80" : "#4ecdc4"
+      }
+    }, overallPct, "%")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 8,
+        background: T.pill,
+        borderRadius: 4,
+        overflow: "hidden"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: `${overallPct}%`,
+        height: "100%",
+        background: complete ? "#4ade80" : "linear-gradient(90deg,#4ecdc4,#80d8d4)",
+        borderRadius: 4,
+        transition: "width 0.4s ease"
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 9,
+        color: T.textSub,
+        fontFamily: "'DM Mono', monospace",
+        marginTop: 6
+      }
+    }, totalLogged, " / ", totalGoal, " total reps")),
+      /* Daily format */
+      selChallenge.type==="daily" && (selChallenge.days||[]).map(day => {
+        const dayTotal=day.exercises.reduce((a,e)=>a+e.goal,0);
+        const dayLogged=day.exercises.reduce((a,e)=>a+(e.logged||0),0);
+        const dayPct=dayTotal>0?Math.min(100,Math.round(dayLogged/dayTotal*100)):0;
+        const dayDone=dayPct>=100;
+        return React.createElement("div",{key:day.id,style:{background:dayDone?"rgba(74,222,128,0.08)":T.glass,backdropFilter:"blur(12px)",border:`1px solid ${dayDone?"rgba(74,222,128,0.3)":T.glassBorder}`,borderRadius:14,padding:"12px 14px",marginBottom:10,boxShadow:T.shadow}},
+          React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}},
+            React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:14,fontWeight:800,color:dayDone?"#4ade80":T.text}},day.label),
+            React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:13,fontWeight:700,color:dayDone?"#4ade80":"#4ecdc4"}},dayDone?"✓ Done":dayPct+"%")
+          ),
+          !dayDone&&React.createElement("div",{style:{height:3,background:T.pill,borderRadius:2,overflow:"hidden",marginBottom:10}},
+            React.createElement("div",{style:{width:`${dayPct}%`,height:"100%",background:"linear-gradient(90deg,#4ecdc4,#80d8d4)",borderRadius:2}})
+          ),
+          day.exercises.map(ex=>{
+            const pct=ex.goal>0?Math.min(100,Math.round((ex.logged||0)/ex.goal*100)):0;
+            const done=pct>=100;
+            const isRest=ex.id==="rest";
+            const amounts=quickAmounts(ex.goal);
+            return React.createElement("div",{key:ex.id,style:{marginBottom:8,paddingBottom:8,borderBottom:`1px solid ${T.divider}`}},
+              React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:done||isRest?0:6}},
+                React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:12,color:done?"#4ade80":T.text}},ex.name),
+                React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:11,color:done?"#4ade80":T.textSub}},isRest?(done?"✓ Rested":""):done?"✓":`${ex.logged||0}/${ex.goal}`)
+              ),
+              !done&&React.createElement("div",{style:{display:"flex",gap:6,flexWrap:"wrap",marginTop:4}},
+                isRest
+                  ?React.createElement("button",{onClick:()=>logAmount(selChallenge.id,day.id,ex.id,1),style:{padding:"5px 14px",borderRadius:20,background:"rgba(168,230,207,0.15)",border:"1px solid rgba(168,230,207,0.3)",color:"#a8e6cf",fontSize:11,fontWeight:700,fontFamily:"'DM Mono', monospace",cursor:"pointer"}},"✓ Log Rest Day")
+                  :React.createElement(React.Fragment,null,
+                    amounts.map(a=>React.createElement("button",{key:a,onClick:()=>logAmount(selChallenge.id,day.id,ex.id,a),style:{padding:"5px 12px",borderRadius:20,background:"rgba(78,205,196,0.15)",border:"1px solid rgba(78,205,196,0.3)",color:"#4ecdc4",fontSize:11,fontWeight:700,fontFamily:"'DM Mono', monospace",cursor:"pointer"}},"+"+a)),
+                    React.createElement("div",{style:{display:"flex",gap:5,alignItems:"center"}},
+                      React.createElement("input",{type:"text",inputMode:"numeric",key:day.id+ex.id,defaultValue:"",onChange:e=>setCustomEntry(p=>({...p,[day.id+ex.id]:e.target.value})),placeholder:"Custom",style:{width:60,background:dark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)",border:`1px solid ${T.glassBorder}`,borderRadius:8,color:T.text,padding:"4px 8px",fontSize:11,fontFamily:"'DM Mono', monospace",outline:"none"}}),
+                      React.createElement("button",{onClick:()=>{const v=parseInt(customEntry[day.id+ex.id]||"0");if(v>0){logAmount(selChallenge.id,day.id,ex.id,v);setCustomEntry(p=>({...p,[day.id+ex.id]:""}));}},style:{padding:"5px 10px",borderRadius:8,background:"#4ecdc4",border:"none",color:"#0d0d14",fontSize:11,fontWeight:700,fontFamily:"'DM Mono', monospace",cursor:"pointer"}},"Add")
+                    )
+                  )
+              )
+            );
+          })
+        );
+      }),
+      /* Flat format */
+      (!selChallenge.type||selChallenge.type!=="daily") && selChallenge.exercises && selChallenge.exercises.map(ex => {
+      const pct = ex.goal > 0 ? Math.min(100, Math.round((ex.logged || 0) / ex.goal * 100)) : 0;
+      const done = pct >= 100;
+      const remaining = Math.max(0, ex.goal - (ex.logged || 0));
+      const amounts = quickAmounts(ex.goal);
+      return /*#__PURE__*/React.createElement("div", {
+        key: ex.id,
+        style: {
+          background: done ? "rgba(74,222,128,0.08)" : T.glass,
+          backdropFilter: "blur(12px)",
+          border: `1px solid ${done ? "rgba(74,222,128,0.3)" : T.glassBorder}`,
+          borderRadius: 14,
+          padding: "12px 14px",
+          marginBottom: 10,
+          boxShadow: T.shadow
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          marginBottom: 8
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          flex: 1,
+          minWidth: 0
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontFamily: "'Outfit', sans-serif",
+          fontSize: 15,
+          fontWeight: 700,
+          color: done ? "#4ade80" : T.text
+        }
+      }, ex.name), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontSize: 9,
+          color: T.textSub,
+          fontFamily: "'DM Mono', monospace",
+          marginTop: 2
+        }
+      }, done ? "✓ Complete!" : `${ex.logged || 0} / ${ex.goal} ${ex.unit} · ${remaining} to go`)), /*#__PURE__*/React.createElement("div", {
+        style: {
+          fontFamily: "'DM Mono', monospace",
+          fontSize: 18,
+          fontWeight: 700,
+          color: done ? "#4ade80" : "#4ecdc4",
+          flexShrink: 0,
+          marginLeft: 8
+        }
+      }, pct, "%")), /*#__PURE__*/React.createElement("div", {
+        style: {
+          height: 5,
+          background: T.pill,
+          borderRadius: 3,
+          overflow: "hidden",
+          marginBottom: done ? 0 : 12
+        }
+      }, /*#__PURE__*/React.createElement("div", {
+        style: {
+          width: `${pct}%`,
+          height: "100%",
+          background: done ? "#4ade80" : "linear-gradient(90deg,#4ecdc4,#80d8d4)",
+          borderRadius: 3,
+          transition: "width 0.4s ease"
+        }
+      })), !done && /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 8,
+          alignItems: "center",
+          flexWrap: "wrap",
+          marginTop: 4
+        }
+      }, amounts.map(a => /*#__PURE__*/React.createElement("button", {
+        key: a,
+        onClick: () => logAmount(selChallenge.id, ex.id, a),
+        style: {
+          padding: "7px 14px",
+          borderRadius: 20,
+          background: "rgba(78,205,196,0.15)",
+          border: "1px solid rgba(78,205,196,0.3)",
+          color: "#4ecdc4",
+          fontSize: 12,
+          fontWeight: 700,
+          fontFamily: "'DM Mono', monospace",
+          cursor: "pointer"
+        }
+      }, "+", a)), /*#__PURE__*/React.createElement("div", {
+        style: {
+          display: "flex",
+          gap: 6,
+          alignItems: "center",
+          flex: 1,
+          minWidth: 120
+        }
+      }, /*#__PURE__*/React.createElement("input", {
+        type: "text",
+        inputMode: "numeric",
+        defaultValue: customEntry[ex.id] || "",
+        onChange: e => setCustomEntry(p => ({
+          ...p,
+          [ex.id]: e.target.value
+        })),
+        placeholder: "Custom",
+        style: {
+          flex: 1,
+          background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+          border: `1px solid ${T.glassBorder}`,
+          borderRadius: 10,
+          color: T.text,
+          padding: "6px 10px",
+          fontSize: 12,
+          fontFamily: "'DM Mono', monospace",
+          outline: "none",
+          minWidth: 0
+        }
+      }), /*#__PURE__*/React.createElement("button", {
+        onClick: () => {
+          const v = parseInt(customEntry[ex.id] || "0");
+          if (v > 0) {
+            logAmount(selChallenge.id, ex.id, v);
+            setCustomEntry(p => ({
+              ...p,
+              [ex.id]: ""
+            }));
+          }
+        },
+        style: {
+          padding: "7px 12px",
+          borderRadius: 10,
+          background: "#4ecdc4",
+          border: "none",
+          color: "#0d0d14",
+          fontSize: 12,
+          fontWeight: 700,
+          fontFamily: "'DM Mono', monospace",
+          cursor: "pointer",
+          flexShrink: 0
+        }
+      }, "Add"))));
+    }));
+  }
+
+  // ── Render: challenge list ─────────────────────────────────────────────────
+  return /*#__PURE__*/React.createElement("div", null, createOpen && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 1005,
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      background: "rgba(0,0,0,0.65)",
+      backdropFilter: "blur(5px)"
+    },
+    onClick: () => setCreateOpen(false)
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: T.sheetBg,
+      borderRadius: "24px 24px 0 0",
+      width: "100%",
+      maxWidth: 540,
+      border: `1px solid ${T.glassBorder}`,
+      boxShadow: "0 -8px 40px rgba(0,0,0,0.5)",
+      maxHeight: "88vh",
+      overflowY: "auto",
+      paddingBottom: 40
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 18px 12px",
+      borderBottom: `1px solid ${T.divider}`,
+      position: "sticky",
+      top: 0,
+      background: T.sheetBg
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 36,
+      height: 4,
+      background: T.glassBorder,
+      borderRadius: 2,
+      margin: "0 auto 12px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: 17,
+      fontWeight: 800,
+      color: T.text
+    }
+  }, "Create Challenge")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 18px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: 3,
+      textTransform: "uppercase",
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      marginBottom: 6
+    }
+  }, "Challenge Name"), /*#__PURE__*/React.createElement("input", {
+    defaultValue: manualName,
+    onChange: e => setManualName(e.target.value),
+    placeholder: "e.g. June Squat Challenge",
+    style: {
+      width: "100%",
+      background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+      border: `1px solid ${T.glassBorder}`,
+      borderRadius: 10,
+      color: T.text,
+      padding: "8px 12px",
+      fontSize: 13,
+      fontFamily: "'DM Mono', monospace",
+      outline: "none",
+      boxSizing: "border-box",
+      marginBottom: 20
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 9,
+      letterSpacing: 3,
+      textTransform: "uppercase",
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      marginBottom: 10
+    }
+  }, "Exercises"), manualExercises.map((ex, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    style: {
+      display: "flex",
+      gap: 8,
+      marginBottom: 10,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    defaultValue: ex.name,
+    onChange: e => {
+      const n = [...manualExercises];
+      n[i] = {
+        ...n[i],
+        name: e.target.value
+      };
+      setManualExercises(n);
+    },
+    placeholder: "Exercise name",
+    style: {
+      flex: 2,
+      background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+      border: `1px solid ${T.glassBorder}`,
+      borderRadius: 10,
+      color: T.text,
+      padding: "7px 10px",
+      fontSize: 12,
+      fontFamily: "'DM Mono', monospace",
+      outline: "none"
+    }
+  }), /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    inputMode: "numeric",
+    defaultValue: ex.goal || "",
+    onChange: e => {
+      const n = [...manualExercises];
+      n[i] = {
+        ...n[i],
+        goal: parseInt(e.target.value) || 0
+      };
+      setManualExercises(n);
+    },
+    placeholder: "Goal",
+    style: {
+      width: 70,
+      background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+      border: `1px solid ${T.glassBorder}`,
+      borderRadius: 10,
+      color: T.text,
+      padding: "7px 10px",
+      fontSize: 12,
+      fontFamily: "'DM Mono', monospace",
+      outline: "none",
+      textAlign: "center"
+    }
+  }), manualExercises.length > 1 && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setManualExercises(manualExercises.filter((_, j) => j !== i)),
+    style: {
+      width: 28,
+      height: 28,
+      borderRadius: "50%",
+      background: "rgba(255,107,107,0.15)",
+      border: "1px solid rgba(255,107,107,0.3)",
+      color: "#ff6b6b",
+      fontSize: 14,
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexShrink: 0
+    }
+  }, "\xD7"))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setManualExercises([...manualExercises, {
+      name: "",
+      goal: 0
+    }]),
+    style: {
+      width: "100%",
+      padding: "8px",
+      borderRadius: 10,
+      background: "transparent",
+      border: `1px dashed ${T.glassBorder}`,
+      color: T.textSub,
+      fontSize: 12,
+      fontFamily: "'DM Mono', monospace",
+      cursor: "pointer",
+      marginBottom: 24
+    }
+  }, "+ Add Exercise"), /*#__PURE__*/React.createElement("button", {
+    onClick: createManual,
+    style: {
+      width: "100%",
+      padding: "13px",
+      borderRadius: 14,
+      background: "#4ecdc4",
+      border: "none",
+      color: "#0d0d14",
+      fontSize: 14,
+      fontWeight: 700,
+      fontFamily: "'Outfit', sans-serif",
+      cursor: "pointer"
+    }
+  }, "Create Challenge")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: 22,
+      fontWeight: 800,
+      letterSpacing: -0.5,
+      marginBottom: 2,
+      color: T.text
+    }
+  }, "Challenges"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 8,
+      color: T.textSub,
+      letterSpacing: 3,
+      textTransform: "uppercase",
+      fontFamily: "'DM Mono', monospace",
+      marginBottom: 16
+    }
+  }, "AI parse text or create manually"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10,
+      marginBottom: 20
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setTextOpen(true),
+    style: {
+      flex: 1,
+      padding: "13px 16px",
+      borderRadius: 14,
+      background: "linear-gradient(135deg,#4ecdc4,#80d8d4)",
+      border: "none",
+      color: "#0d0d14",
+      fontSize: 13,
+      fontWeight: 700,
+      fontFamily: "'Outfit', sans-serif",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 18
+    }
+  }, "\u2728"), "AI Parse Text"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setCreateOpen(true),
+    style: {
+      flex: 1,
+      padding: "13px 16px",
+      borderRadius: 14,
+      background: T.glass,
+      backdropFilter: "blur(8px)",
+      border: `1px solid ${T.glassBorder}`,
+      color: T.text,
+      fontSize: 13,
+      fontWeight: 700,
+      fontFamily: "'Outfit', sans-serif",
+      cursor: "pointer",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 18
+    }
+  }, "\u270F\uFE0F"), "Create Manually")), textOpen && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      inset: 0,
+      zIndex: 1010,
+      display: "flex",
+      alignItems: "flex-end",
+      justifyContent: "center",
+      background: "rgba(0,0,0,0.7)",
+      backdropFilter: "blur(5px)"
+    },
+    onClick: () => setTextOpen(false)
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => e.stopPropagation(),
+    style: {
+      background: T.sheetBg,
+      borderRadius: "24px 24px 0 0",
+      width: "100%",
+      maxWidth: 540,
+      border: `1px solid ${T.glassBorder}`,
+      boxShadow: "0 -8px 40px rgba(0,0,0,0.5)",
+      padding: "20px 20px 40px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      width: 36,
+      height: 4,
+      background: T.glassBorder,
+      borderRadius: 2,
+      margin: "0 auto 16px"
+    }
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: 17,
+      fontWeight: 800,
+      color: T.text,
+      marginBottom: 4
+    }
+  }, "Paste Challenge Text"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      lineHeight: 1.6,
+      marginBottom: 14
+    }
+  }, "Copy the text from your challenge post and paste it below. Claude will extract all the exercises and rep counts automatically."), /*#__PURE__*/React.createElement("textarea", {
+    defaultValue: textInput,
+    onChange: e => setTextInput(e.target.value),
+    placeholder: "e.g. June Challenge:\n200 squats\n150 lunges\n100 push-ups\n50 burpees",
+    rows: 6,
+    style: {
+      width: "100%",
+      background: dark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
+      border: `1px solid ${T.glassBorder}`,
+      borderRadius: 12,
+      color: T.text,
+      padding: "10px 12px",
+      fontSize: 12,
+      fontFamily: "'DM Mono', monospace",
+      resize: "none",
+      outline: "none",
+      lineHeight: 1.6,
+      boxSizing: "border-box",
+      marginBottom: 14
+    }
+  }), parseError && /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 10,
+      color: "#ff6b6b",
+      fontFamily: "'DM Mono', monospace",
+      marginBottom: 10,
+      lineHeight: 1.5
+    }
+  }, parseError), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setTextOpen(false),
+    style: {
+      flex: 1,
+      padding: "12px",
+      borderRadius: 14,
+      background: T.pill,
+      border: `1px solid ${T.glassBorder}`,
+      color: T.textSub,
+      fontSize: 13,
+      cursor: "pointer",
+      fontFamily: "'DM Mono', monospace"
+    }
+  }, "Cancel"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => parseChallenge(textInput),
+    disabled: !textInput.trim(),
+    style: {
+      flex: 2,
+      padding: "12px",
+      borderRadius: 14,
+      background: textInput.trim() ? "linear-gradient(135deg,#4ecdc4,#80d8d4)" : "rgba(78,205,196,0.3)",
+      border: "none",
+      color: "#0d0d14",
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: textInput.trim() ? "pointer" : "default",
+      fontFamily: "'Outfit', sans-serif"
+    }
+  }, "\u2728 Parse Challenge")))), challenges.length === 0 && !parsing && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: T.glass,
+      backdropFilter: "blur(12px)",
+      border: `1px solid ${T.glassBorder}`,
+      borderRadius: 14,
+      padding: "40px 20px",
+      textAlign: "center",
+      boxShadow: T.shadow
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 40,
+      marginBottom: 12
+    }
+  }, "\uD83C\uDFC6"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontFamily: "'Outfit', sans-serif",
+      fontSize: 16,
+      fontWeight: 700,
+      color: T.text,
+      marginBottom: 8
+    }
+  }, "No challenges yet"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: 11,
+      color: T.textSub,
+      fontFamily: "'DM Mono', monospace",
+      lineHeight: 1.6
+    }
+  }, "Copy the text from a challenge post and tap ", /*#__PURE__*/React.createElement("strong", null, "\u2728 AI Parse Text"), " \u2014 Claude will extract the exercises automatically. Or build one manually.")), challenges.map(c => {
+    const allEx = c.type==="daily"
+      ? (c.days||[]).flatMap(d=>d.exercises)
+      : (c.exercises||[]);
+    const total = allEx.reduce((a, e) => a + e.goal, 0);
+    const logged = allEx.reduce((a, e) => a + (e.logged || 0), 0);
+    const pct = total > 0 ? Math.round(logged / total * 100) : 0;
+    const complete = pct >= 100;
+    return /*#__PURE__*/React.createElement("button", {
+      key: c.id,
+      onClick: () => setSelected(c.id),
+      style: {
+        width: "100%",
+        background: complete ? "rgba(74,222,128,0.08)" : T.glass,
+        backdropFilter: "blur(12px)",
+        border: `1px solid ${complete ? "rgba(74,222,128,0.3)" : T.glassBorder}`,
+        borderRadius: 14,
+        padding: "13px 16px",
+        marginBottom: 10,
+        cursor: "pointer",
+        textAlign: "left",
+        boxShadow: T.shadow,
+        display: "flex",
+        alignItems: "center",
+        gap: 14
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 28,
+        flexShrink: 0
+      }
+    }, complete ? "🏆" : "🔥"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        minWidth: 0
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "'Outfit', sans-serif",
+        fontSize: 14,
+        fontWeight: 700,
+        color: T.text,
+        marginBottom: 4,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      }
+    }, c.name), /*#__PURE__*/React.createElement("div", {
+      style: {
+        height: 4,
+        background: T.pill,
+        borderRadius: 2,
+        overflow: "hidden",
+        marginBottom: 4
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: `${pct}%`,
+        height: "100%",
+        background: complete ? "#4ade80" : "linear-gradient(90deg,#4ecdc4,#80d8d4)",
+        borderRadius: 2,
+        transition: "width 0.4s"
+      }
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontSize: 9,
+        color: T.textSub,
+        fontFamily: "'DM Mono', monospace"
+      }
+    }, c.type==="daily"?(c.days||[]).length:(c.exercises||[]).length, " ", c.type==="daily"?"days":"exercises", " \xB7 ", pct, "% complete \xB7 Started ", c.createdAt)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        fontFamily: "'DM Mono', monospace",
+        fontSize: 16,
+        fontWeight: 700,
+        color: complete ? "#4ade80" : "#4ecdc4",
+        flexShrink: 0
+      }
+    }, pct, "%"));
+  }));
+}
 function WorkoutTracker() {
-  const [locked, setLocked] = useState(true);
+  const [locked, setLocked] = useState(false);
   const [plans, setPlans] = useState(() => {
     const p = loadPlansInit();
     // Ensure active plan's workouts are saved to WORKOUTS_KEY for legacy compat
@@ -9794,16 +10906,6 @@ function WorkoutTracker() {
     glass: "rgba(255,255,255,0.05)",
     glassBorder: "rgba(255,255,255,0.09)"
   };
-  if (locked) return /*#__PURE__*/React.createElement(PinScreen, {
-    onUnlock: () => setLocked(false),
-    T: dark ? _pinT : {
-      ..._pinT,
-      bgGrad: "radial-gradient(ellipse 70% 50% at 10% 0%,#ede0f5 0%,#f0ebe2 55%)",
-      text: "#1a1628",
-      textSub: "#777"
-    },
-    dark: dark
-  });
   return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: "100vh",
@@ -10311,6 +11413,9 @@ function WorkoutTracker() {
     v: "stretch",
     label: "Flex"
   }, {
+    v: "challenge",
+    label: "🏆"
+  }, {
     v: "library",
     label: "Lib"
   }].map(({
@@ -10448,6 +11553,9 @@ function WorkoutTracker() {
     dark: dark,
     workouts: workouts,
     onAddToWorkout: onAddToWorkout
+  }), view === "challenge" && /*#__PURE__*/React.createElement(ChallengeView, {
+    T: T,
+    dark: dark
   }), view === "history" && /*#__PURE__*/React.createElement(HistoryView, {
     logs: logs,
     freeLogs: freeLogs,
