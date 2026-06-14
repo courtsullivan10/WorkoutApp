@@ -5496,7 +5496,7 @@ function WeightInput({
   return /*#__PURE__*/React.createElement("input", {
     ref: ref,
     type: "text",
-    inputMode: "numeric",
+    inputMode: "decimal",
     defaultValue: initialValue ?? "",
     placeholder: placeholder || "—",
     onChange: e => {
@@ -5753,6 +5753,49 @@ function JourneyStrip({
     }
   }, wi === 0 || wi === 4 || wi === 8 || wi === 11 ? week.label.split(" ")[0] : ""))));
 }
+
+function PhotosGrid({T, dark, tick, setTab}) {
+  var photos = [];
+  try { photos = JSON.parse(localStorage.getItem("wt-photos") || "[]"); } catch(e) {}
+  var [lightbox, setLightbox] = useState(null);
+
+  function deletePhoto(id) {
+    var updated = photos.filter(function(p){ return p.id !== id; });
+    localStorage.setItem("wt-photos", JSON.stringify(updated));
+    setLightbox(null);
+  }
+
+  if (photos.length === 0) {
+    return /*#__PURE__*/React.createElement("div", {style:{textAlign:"center",padding:"60px 20px",color:T.textSub,fontFamily:"'DM Mono', monospace",fontSize:12}},
+      /*#__PURE__*/React.createElement("div", {style:{fontSize:14,marginBottom:12}}, "No photos yet"),
+      "Tap + Add to upload your first progress photo"
+    );
+  }
+
+  return /*#__PURE__*/React.createElement("div", {style:{padding:"0 16px"}},
+    lightbox && /*#__PURE__*/React.createElement("div", {
+      style:{position:"fixed",inset:0,zIndex:600,background:"rgba(0,0,0,0.95)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"},
+      onClick:function(){setLightbox(null);}
+    },
+      /*#__PURE__*/React.createElement("img", {src:lightbox.src,style:{maxWidth:"90vw",maxHeight:"70vh",objectFit:"contain",borderRadius:8}}),
+      /*#__PURE__*/React.createElement("div", {style:{color:"rgba(255,255,255,0.6)",fontFamily:"'DM Mono', monospace",fontSize:10,marginTop:12}},
+        new Date(lightbox.date).toLocaleDateString()
+      ),
+      /*#__PURE__*/React.createElement("button", {
+        onClick:function(e){e.stopPropagation();if(window.confirm("Delete this photo?"))deletePhoto(lightbox.id);},
+        style:{marginTop:16,padding:"8px 20px",borderRadius:10,background:"rgba(255,80,80,0.2)",border:"1px solid rgba(255,80,80,0.4)",color:"#ff5050",fontFamily:"'DM Mono', monospace",fontSize:11,cursor:"pointer"}
+      }, "Delete")
+    ),
+    /*#__PURE__*/React.createElement("div", {style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:4}},
+      photos.map(function(p){
+        return /*#__PURE__*/React.createElement("div", {key:p.id,onClick:function(){setLightbox(p);},style:{aspectRatio:"1",borderRadius:8,overflow:"hidden",cursor:"pointer",background:T.glass}},
+          /*#__PURE__*/React.createElement("img", {src:p.src,style:{width:"100%",height:"100%",objectFit:"cover"}})
+        );
+      })
+    )
+  );
+}
+
 function StatsView({
   logs,
   workouts,
@@ -5762,6 +5805,7 @@ function StatsView({
   freeLogs = []
 }) {
   const [tab, setTab] = useState("workout");
+  const [photoTick, setPhotoTick] = useState(0);
   const today = new Date();
   const thisMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 
@@ -5985,13 +6029,19 @@ function StatsView({
   // ── Tab bar ─────────────────────────────────────────────────────────────────
   const tabDefs = [{
     t: "workout",
-    label: "💪 Workouts"
+    label: "Workouts"
   }, {
     t: "stretch",
-    label: "🧘 Stretching"
+    label: "Stretching"
   }, {
     t: "prs",
-    label: "🏆 Records"
+    label: "Records"
+  }, {
+    t: "badges",
+    label: "Badges"
+  }, {
+    t: "photos",
+    label: "Photos"
   }];
 
   // Day detail data
@@ -6688,7 +6738,48 @@ function StatsView({
         marginTop: 3
       }
     }, pr.date));
-  })))));
+  })))),
+  tab === "badges" && /*#__PURE__*/React.createElement("div", {style:{padding:"0 2px"}},
+    /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:9,letterSpacing:3,textTransform:"uppercase",color:T.textSub,marginBottom:12}}, "Achievements"),
+    /*#__PURE__*/React.createElement("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}},
+      [
+        {id:"first",name:"First Step",desc:"Complete your first workout",icon:"Run",check:function(){return Object.keys(logs).length>=1;}},
+        {id:"c10",name:"Consistent",desc:"Log 10 workouts",icon:"Up",check:function(){return Object.keys(logs).length>=10;}},
+        {id:"c50",name:"Iron Will",desc:"Complete 50 workouts",icon:"Lift",check:function(){return Object.keys(logs).length>=50;}},
+        {id:"sets100",name:"Century",desc:"Log 100 total sets",icon:"100",check:function(){var t=0;Object.values(logs).forEach(function(l){t+=Object.values(l.checked||{}).filter(Boolean).length;});return t>=100;}},
+      ].map(function(b){
+        var earned=b.check();
+        return /*#__PURE__*/React.createElement("div",{key:b.id,style:{background:earned?"rgba(78,205,196,0.1)":T.glass,border:"1px solid "+(earned?"rgba(78,205,196,0.4)":T.glassBorder),borderRadius:12,padding:"12px",textAlign:"center"}},
+          /*#__PURE__*/React.createElement("div",{style:{fontSize:24,marginBottom:6,opacity:earned?1:0.3}},b.icon),
+          /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:11,fontWeight:700,color:earned?"#4ecdc4":T.text}},b.name),
+          /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:8,color:T.textSub,marginTop:4}},b.desc),
+          earned&&/*#__PURE__*/React.createElement("div",{style:{fontSize:9,color:"#4ecdc4",fontFamily:"'DM Mono', monospace",marginTop:4}},"EARNED")
+        );
+      })
+    )
+  ),
+  tab === "photos" && /*#__PURE__*/React.createElement("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:500,background:T.bgGrad,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"0 0 100px"}},
+    /*#__PURE__*/React.createElement("div",{style:{display:"flex",alignItems:"center",gap:12,padding:"16px 16px 0",marginBottom:16,position:"sticky",top:0,background:T.bgGrad,zIndex:1}},
+      /*#__PURE__*/React.createElement("button",{onClick:function(){setTab("workout");},style:{background:"transparent",border:"none",color:T.textSub,fontSize:20,cursor:"pointer",padding:4}},"\u2190"),
+      /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:18,fontWeight:800,color:T.text,flex:1}},"Progress Photos"),
+      /*#__PURE__*/React.createElement("label",{style:{padding:"8px 14px",borderRadius:12,background:"#4ecdc4",color:"#0d0d14",fontSize:11,fontWeight:700,fontFamily:"'DM Mono', monospace",cursor:"pointer"}},
+        "+ Add",
+        /*#__PURE__*/React.createElement("input",{type:"file",accept:"image/*",style:{display:"none"},
+          onChange:function(e){
+            var file=e.target.files&&e.target.files[0]; if(!file)return;
+            var reader=new FileReader();
+            reader.onload=function(ev){
+              var photos=JSON.parse(localStorage.getItem("wt-photos")||"[]");
+              photos.unshift({id:Date.now(),date:new Date().toISOString(),src:ev.target.result});
+              localStorage.setItem("wt-photos",JSON.stringify(photos));
+              setPhotoTick(function(t){return t+1;});
+            };
+            reader.readAsDataURL(file);
+          }
+        })
+      )
+    ),
+    /*#__PURE__*/React.createElement(PhotosGrid,{T:T,dark:dark,tick:photoTick,setTab:setTab})))
 }
 
 // ─── Rest Timer ────────────────────────────────────────────────────────────────
@@ -6696,31 +6787,43 @@ const REST_PRESETS = [30, 45, 60, 90];
 function RestTimerSheet({
   open,
   onClose,
+  onDismiss,
+  initialTarget,
   accent,
   T
 }) {
-  const [target, setTarget] = useState(90),
+  const [target, setTarget] = useState(initialTarget || 90),
     [elapsed, setElapsed] = useState(0),
     [running, setRunning] = useState(false);
   const ivl = useRef(null);
+  const startTimeRef = useRef(null);
+
   useEffect(() => {
     if (open) {
+      startTimeRef.current = Date.now();
       setElapsed(0);
       setRunning(true);
-    } else {
-      setRunning(false);
-      setElapsed(0);
+      // Schedule notification
+      if (typeof Notification !== "undefined" && Notification.permission === "default") {
+        Notification.requestPermission();
+      }
+      scheduleTimerNotification(target, "Rest done — time to lift!");
     }
   }, [open]);
+
   useEffect(() => {
     if (running) {
-      ivl.current = setInterval(() => setElapsed(e => {
-        if (e + 1 >= target) {
+      ivl.current = setInterval(() => {
+        if (!startTimeRef.current) return;
+        var e = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        if (e >= target) {
+          setElapsed(target);
           setRunning(false);
-          return target;
+          playBeep("rest_done");
+        } else {
+          setElapsed(e);
         }
-        return e + 1;
-      }), 1000);
+      }, 500);
     } else clearInterval(ivl.current);
     return () => clearInterval(ivl.current);
   }, [running, target]);
@@ -6916,7 +7019,7 @@ function RestTimerSheet({
       fontFamily: "'DM Mono', monospace",
       cursor: "pointer"
     }
-  }, "Done"))));
+  }, "Minimize"))));
 }
 
 // ─── EditorExRow (hoisted outside WorkoutEditorSheet to prevent focus loss) ─────
@@ -7034,7 +7137,7 @@ function EditorExRow({
     }
   }, "Sets"), /*#__PURE__*/React.createElement("input", {
     type: "text",
-    inputMode: "numeric",
+    inputMode: "decimal",
     defaultValue: String(ex.sets || 3),
     onChange: e => onUpdate(sec, idx, "sets", e.target.value),
     style: {
@@ -7542,23 +7645,28 @@ function ExerciseTimer({ seconds, accent, dark, T, onComplete }) {
   const [running, setRunning] = React.useState(false);
   const [done, setDone] = React.useState(false);
   const intervalRef = React.useRef(null);
+  const startTimeRef = React.useRef(null);
+  const startRemainingRef = React.useRef(seconds);
 
   React.useEffect(() => {
-    if (running && remaining > 0) {
+    if (running) {
+      startTimeRef.current = Date.now();
+      startRemainingRef.current = remaining;
       intervalRef.current = setInterval(() => {
-        setRemaining(r => {
-          if (r <= 1) {
-            clearInterval(intervalRef.current);
-            setRunning(false);
-            setDone(true);
-            // Vibrate on completion
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-            onComplete && onComplete();
-            return 0;
-          }
-          return r - 1;
-        });
-      }, 1000);
+        var elapsed = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        var left = Math.max(0, startRemainingRef.current - elapsed);
+        setRemaining(left);
+        if (left <= 0) {
+          clearInterval(intervalRef.current);
+          setRunning(false);
+          setDone(true);
+          playBeep("rest_done");
+          if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+          onComplete && onComplete();
+        }
+      }, 500);
+    } else {
+      clearInterval(intervalRef.current);
     }
     return () => clearInterval(intervalRef.current);
   }, [running]);
@@ -7599,6 +7707,174 @@ function ExerciseTimer({ seconds, accent, dark, T, onComplete }) {
   );
 }
 
+
+function parseTimerRange(val) {
+  if (!val) return null;
+  var s = String(val).toLowerCase().trim();
+  function toSec(v, u) {
+    u = u || '';
+    if (u.indexOf('h') >= 0) return Math.round(v * 3600);
+    if (u.indexOf('m') >= 0) return Math.round(v * 60);
+    return Math.round(v);
+  }
+  var rm = s.match(/(\d+(?:\.\d+)?)\s*(h|min|m|sec|s)?\s*[-\u2013\u2014]\s*(\d+(?:\.\d+)?)\s*(h|min|m|sec|s)?/);
+  if (rm) {
+    var lo=parseFloat(rm[1]),loU=rm[2]||'',hi=parseFloat(rm[3]),hiU=rm[4]||'';
+    if (!loU && hiU) loU=hiU; if (!hiU && loU) hiU=loU;
+    var loS=toSec(lo,loU),hiS=toSec(hi,hiU);
+    if (loS>=5&&hiS>=5) return {low:loS,high:hiS,isRange:true};
+  }
+  var sm = s.match(/(\d+(?:\.\d+)?)\s*(h|min|m|sec|s)?/);
+  if (sm) { var sec=toSec(parseFloat(sm[1]),sm[2]||''); if (sec>=10) return {low:sec,high:null,isRange:false}; }
+  return null;
+}
+
+function CardioTimerSheet({open, onClose, onDismiss, onStart, ex, accent, T, dark}) {
+  var [elapsed, setElapsed] = useState(0);
+  var [phase, setPhase] = useState("idle");
+  var startRef = useRef(null);
+  var ivlRef = useRef(null);
+  var phaseRef = useRef("idle");
+  var rangeRef = useRef(null);
+
+  useEffect(function() {
+    rangeRef.current = ex ? parseTimerRange(ex.duration || ex.reps) : null;
+  });
+
+  useEffect(function() {
+    return function() { clearInterval(ivlRef.current); };
+  }, []);
+
+  function doStart() {
+    var r = ex ? parseTimerRange(ex.duration || ex.reps) : null;
+    if (!r) return;
+    rangeRef.current = r;
+    var now = Date.now();
+    startRef.current = now;
+    if (onStart) onStart(now);
+    phaseRef.current = "running-low";
+    setPhase("running-low");
+    clearInterval(ivlRef.current);
+    ivlRef.current = setInterval(function() {
+      if (!startRef.current) return;
+      var e = Math.max(0, Math.floor((Date.now() - startRef.current) / 1000));
+      var rr = rangeRef.current;
+      setElapsed(e);
+      var ph = phaseRef.current;
+      if (ph === "running-low" && rr) {
+        if (e >= rr.low) {
+          if (rr.isRange) { phaseRef.current = "at-low"; setPhase("at-low"); clearInterval(ivlRef.current); playBeep("rest_done"); }
+          else { phaseRef.current = "done"; setPhase("done"); clearInterval(ivlRef.current); playBeep("rest_done"); }
+        } else if (rr.low - e <= 3) { playBeep("countdown"); }
+      } else if (ph === "running-high" && rr) {
+        if (e >= rr.high) { phaseRef.current = "done"; setPhase("done"); clearInterval(ivlRef.current); playBeep("rest_done"); }
+        else if (rr.high - e <= 3) { playBeep("countdown"); }
+      }
+    }, 500);
+  }
+
+  function doContinue() {
+    var rr = rangeRef.current;
+    if (!rr) return;
+    startRef.current = Date.now() - elapsed * 1000;
+    phaseRef.current = "running-high";
+    setPhase("running-high");
+    clearInterval(ivlRef.current);
+    ivlRef.current = setInterval(function() {
+      if (!startRef.current) return;
+      var e = Math.max(0, Math.floor((Date.now() - startRef.current) / 1000));
+      setElapsed(e);
+      if (e >= rr.high) { phaseRef.current = "done"; setPhase("done"); clearInterval(ivlRef.current); playBeep("rest_done"); }
+      else if (rr.high - e <= 3) { playBeep("countdown"); }
+    }, 500);
+  }
+
+  function doStop() {
+    clearInterval(ivlRef.current);
+    startRef.current = null;
+    phaseRef.current = "idle";
+    setPhase("idle");
+    setElapsed(0);
+    if (onDismiss) onDismiss(); else onClose();
+  }
+
+  if (!open) return null;
+  var range = ex ? parseTimerRange(ex.duration || ex.reps) : null;
+  if (!range) return null;
+
+  var ac = accent || "#4ecdc4";
+  var mins = Math.floor(elapsed/60), secs = elapsed%60;
+  var timeStr = mins+":"+(secs<10?"0":"")+secs;
+
+  function fmt(s) {
+    if (!s) return "0s";
+    if (s>=3600) return Math.floor(s/3600)+"h"+(s%3600>=60?" "+Math.floor((s%3600)/60)+"m":"");
+    if (s>=60) return Math.floor(s/60)+"m"+(s%60>0?" "+s%60+"s":"");
+    return s+"s";
+  }
+
+  var pct = range.isRange
+    ? (phase==="running-high"||phase==="at-low" ? Math.min(elapsed/range.high,1) : Math.min(elapsed/range.low,1))
+    : Math.min(elapsed/range.low,1);
+
+  var btnS = function(col) { return {flex:1,padding:"13px",borderRadius:14,background:col||"rgba(255,255,255,0.08)",border:"1px solid "+(col?col:T.glassBorder),color:col?"#0d0d14":T.text,fontSize:14,fontWeight:700,fontFamily:"'Outfit', sans-serif",cursor:"pointer"}; };
+
+  return /*#__PURE__*/React.createElement("div",{style:{position:"fixed",inset:0,zIndex:1005,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(0,0,0,0.65)",backdropFilter:"blur(5px)"}},
+    /*#__PURE__*/React.createElement("div",{style:{background:T.sheetBg,borderRadius:"24px 24px 0 0",width:"100%",maxWidth:540,padding:"20px 20px 44px",border:"1px solid "+T.glassBorder}},
+      /*#__PURE__*/React.createElement("div",{style:{width:36,height:4,background:T.glassBorder,borderRadius:2,margin:"0 auto 16px"}}),
+      /*#__PURE__*/React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}},
+        /*#__PURE__*/React.createElement("div",null,
+          /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:16,fontWeight:800,color:T.text}}, ex&&ex.name),
+          /*#__PURE__*/React.createElement("div",{style:{fontSize:9,color:ac,fontFamily:"'DM Mono', monospace",marginTop:3}},
+            range.isRange ? fmt(range.low)+" - "+fmt(range.high)+" target" : fmt(range.low)+" target")
+        ),
+        phase!=="idle" && /*#__PURE__*/React.createElement("button",{onClick:onClose,style:{background:"transparent",border:"1px solid "+T.glassBorder,borderRadius:8,color:T.textSub,fontSize:11,cursor:"pointer",padding:"4px 10px",fontFamily:"'DM Mono', monospace"}}, "minimize")
+      ),
+      /*#__PURE__*/React.createElement("div",{style:{textAlign:"center",marginBottom:16}},
+        /*#__PURE__*/React.createElement("div",{style:{fontSize:56,fontWeight:800,fontFamily:"'DM Mono', monospace",color:phase==="done"?"#4ecdc4":phase==="at-low"?"#fbbf24":ac,letterSpacing:-2,lineHeight:1}}, timeStr),
+        phase==="at-low" && /*#__PURE__*/React.createElement("div",{style:{fontSize:12,color:"#fbbf24",fontFamily:"'DM Mono', monospace",marginTop:6,fontWeight:700}}, "Low end! Keep going to "+fmt(range.high)+"?"),
+        phase==="done" && /*#__PURE__*/React.createElement("div",{style:{fontSize:12,color:"#4ecdc4",fontFamily:"'DM Mono', monospace",marginTop:6,fontWeight:700}}, "Done!")
+      ),
+      /*#__PURE__*/React.createElement("div",{style:{height:6,background:"rgba(255,255,255,0.08)",borderRadius:3,marginBottom:16,overflow:"hidden",position:"relative"}},
+        range.isRange && /*#__PURE__*/React.createElement("div",{style:{position:"absolute",left:(range.low/range.high*100)+"%",top:0,bottom:0,width:2,background:"rgba(251,191,36,0.5)"}}),
+        /*#__PURE__*/React.createElement("div",{style:{width:(pct*100)+"%",height:"100%",background:phase==="done"?"#4ecdc4":phase==="at-low"?"#fbbf24":ac,borderRadius:3,transition:"width 0.5s linear"}})
+      ),
+      phase==="idle" && /*#__PURE__*/React.createElement("button",{onClick:doStart,style:btnS(ac)}, "Start"),
+      (phase==="running-low"||phase==="running-high") && /*#__PURE__*/React.createElement("div",{style:{display:"flex",gap:10}},
+        /*#__PURE__*/React.createElement("button",{onClick:onClose,style:btnS(null)}, "Minimize"),
+        /*#__PURE__*/React.createElement("button",{onClick:doStop,style:btnS(null)}, "Stop")
+      ),
+      phase==="at-low" && /*#__PURE__*/React.createElement("div",{style:{display:"flex",gap:10}},
+        /*#__PURE__*/React.createElement("button",{onClick:doContinue,style:btnS(ac)}, "Keep going → "+fmt(range.high)),
+        /*#__PURE__*/React.createElement("button",{onClick:doStop,style:btnS(null)}, "Stop here")
+      ),
+      phase==="done" && /*#__PURE__*/React.createElement("div",{style:{display:"flex",gap:10}},
+        /*#__PURE__*/React.createElement("button",{onClick:function(){setElapsed(0);phaseRef.current="idle";setPhase("idle");startRef.current=null;clearInterval(ivlRef.current);},style:btnS(null)}, "Restart"),
+        /*#__PURE__*/React.createElement("button",{onClick:doStop,style:btnS(ac)}, "Done")
+      )
+    )
+  );
+}
+
+
+
+function getSuggestedRest(name) {
+  if (!name) return 90;
+  var n = name.toLowerCase();
+  if (/squat|deadlift|bench|press|row|pull.up|chin.up|power clean/.test(n)) return 180;
+  if (/rdl|romanian|hip thrust|lunge/.test(n)) return 120;
+  if (/curl|extension|pushdown|raise|fly|kickback|crunch|plank|hold/.test(n)) return 60;
+  return 90;
+}
+function getSuggestedRestLabel(name) {
+  var s = getSuggestedRest(name);
+  if (s >= 180) return "3-5 min rest";
+  if (s >= 120) return "2-3 min rest";
+  if (s >= 90) return "90s rest";
+  if (s >= 60) return "60s rest";
+  return "45s rest";
+}
+
 function ExerciseSection({
   exercises,
   section,
@@ -7613,7 +7889,8 @@ function ExerciseSection({
   onSaveWeight,
   onTogglePR,
   onSwapExercise,
-  onOpenPanel
+  onOpenPanel,
+  onShowCardioTimer
 }) {
   if (!exercises.length) return null;
   return /*#__PURE__*/React.createElement("div", {
@@ -7690,7 +7967,11 @@ function ExerciseSection({
         textOverflow: "ellipsis",
         whiteSpace: "nowrap"
       }
-    }, ex.name), /*#__PURE__*/React.createElement("button", {
+    }, ex.name),
+    !ex.timed && !ex.bodyweight && /*#__PURE__*/React.createElement("div", {
+      style: {fontSize:8, color:"rgba(78,205,196,0.6)", fontFamily:"'DM Mono', monospace", letterSpacing:0.5, marginTop:1, whiteSpace:"nowrap"}
+    }, "⏱ " + getSuggestedRestLabel(ex.name)),
+    /*#__PURE__*/React.createElement("button", {
       title: "Videos & alternatives",
       style: {
         width: 18,
@@ -7711,7 +7992,15 @@ function ExerciseSection({
         e.stopPropagation();
         onOpenPanel(ex, accent, section);
       }
-    }, "\u2139")), /*#__PURE__*/React.createElement("span", {
+    }, "\u2139"),
+    (function() {
+      var r = parseTimerRange(ex.duration || (ex.timed ? ex.reps : null) || (/[smh]$|min/.test(String(ex.reps||"").toLowerCase()) ? ex.reps : null));
+      if (!r) return null;
+      return /*#__PURE__*/React.createElement("button",{
+        style:{width:26,height:26,borderRadius:8,border:"1px solid rgba(78,205,196,0.3)",background:"rgba(78,205,196,0.1)",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",color:"#4ecdc4",flexShrink:0},
+        onClick:function(e){e.stopPropagation();if(onShowCardioTimer)onShowCardioTimer(ex);}
+      },"\u23F1");
+    })()), /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 10,
         color: accent,
@@ -7762,7 +8051,7 @@ function ExerciseSection({
         accent: accent,
         dark: dark,
         T: T,
-        onComplete: () => !done && onToggleSet(k)
+        onComplete: () => !done && onToggleSet(k, ex.name)
       }) : isBW ? /*#__PURE__*/React.createElement("span", {
         style: {
           fontSize: 10,
@@ -7800,7 +8089,7 @@ function ExerciseSection({
           lineHeight: 1
         }
       }, "+")), /*#__PURE__*/React.createElement("button", {
-        onClick: () => onToggleSet(k),
+        onClick: () => onToggleSet(k, ex.name),
         style: {
           width: 28,
           height: 28,
@@ -9700,7 +9989,7 @@ function ChallengeView({
                   day.exercises.map((ex,ei)=>
                     /*#__PURE__*/React.createElement("div", {key:ex.id,style:{display:"flex",gap:8,marginBottom:6,alignItems:"center"}},
                       /*#__PURE__*/React.createElement("input", {key:day.id+ex.id+"n",defaultValue:ex.name,onChange:e=>{const d=JSON.parse(JSON.stringify(editDraft));d.days[di].exercises[ei].name=e.target.value;setEditDraft(d);},style:{flex:2,background:dark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)",border:`1px solid ${T.glassBorder}`,borderRadius:8,color:T.text,padding:"5px 8px",fontSize:11,fontFamily:"'DM Mono', monospace",outline:"none"}}),
-                      /*#__PURE__*/React.createElement("input", {key:day.id+ex.id+"g",type:"text",inputMode:"numeric",defaultValue:String(ex.goal),onChange:e=>{const v=parseInt(e.target.value)||0;const d=JSON.parse(JSON.stringify(editDraft));d.days[di].exercises[ei].goal=v;setEditDraft(d);},style:{width:60,background:dark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)",border:`1px solid ${T.glassBorder}`,borderRadius:8,color:T.text,padding:"5px 8px",fontSize:11,fontFamily:"'DM Mono', monospace",outline:"none",textAlign:"center"}})
+                      /*#__PURE__*/React.createElement("input", {key:day.id+ex.id+"g",type:"text",inputMode:"decimal",defaultValue:String(ex.goal),onChange:e=>{const v=parseInt(e.target.value)||0;const d=JSON.parse(JSON.stringify(editDraft));d.days[di].exercises[ei].goal=v;setEditDraft(d);},style:{width:60,background:dark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)",border:`1px solid ${T.glassBorder}`,borderRadius:8,color:T.text,padding:"5px 8px",fontSize:11,fontFamily:"'DM Mono', monospace",outline:"none",textAlign:"center"}})
                     )
                   )
                 )
@@ -9711,7 +10000,7 @@ function ChallengeView({
               (editDraft.exercises||[]).map((ex,ei)=>
                 /*#__PURE__*/React.createElement("div", {key:ex.id,style:{display:"flex",gap:8,marginBottom:8,alignItems:"center"}},
                   /*#__PURE__*/React.createElement("input", {key:ex.id+"n",defaultValue:ex.name,onChange:e=>{const d=JSON.parse(JSON.stringify(editDraft));d.exercises[ei].name=e.target.value;setEditDraft(d);},style:{flex:2,background:dark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)",border:`1px solid ${T.glassBorder}`,borderRadius:8,color:T.text,padding:"6px 10px",fontSize:12,fontFamily:"'DM Mono', monospace",outline:"none"}}),
-                  /*#__PURE__*/React.createElement("input", {key:ex.id+"g",type:"text",inputMode:"numeric",defaultValue:String(ex.goal),onChange:e=>{const v=parseInt(e.target.value)||0;const d=JSON.parse(JSON.stringify(editDraft));d.exercises[ei].goal=v;setEditDraft(d);},style:{width:70,background:dark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)",border:`1px solid ${T.glassBorder}`,borderRadius:8,color:T.text,padding:"6px 10px",fontSize:12,fontFamily:"'DM Mono', monospace",outline:"none",textAlign:"center"}})
+                  /*#__PURE__*/React.createElement("input", {key:ex.id+"g",type:"text",inputMode:"decimal",defaultValue:String(ex.goal),onChange:e=>{const v=parseInt(e.target.value)||0;const d=JSON.parse(JSON.stringify(editDraft));d.exercises[ei].goal=v;setEditDraft(d);},style:{width:70,background:dark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)",border:`1px solid ${T.glassBorder}`,borderRadius:8,color:T.text,padding:"6px 10px",fontSize:12,fontFamily:"'DM Mono', monospace",outline:"none",textAlign:"center"}})
                 )
               )
             )
@@ -9958,7 +10247,7 @@ function ChallengeView({
                   :React.createElement(React.Fragment,null,
                     amounts.map(a=>React.createElement("button",{key:a,onClick:()=>logAmount(selChallenge.id,day.id,ex.id,a),style:{padding:"5px 12px",borderRadius:20,background:"rgba(78,205,196,0.15)",border:"1px solid rgba(78,205,196,0.3)",color:"#4ecdc4",fontSize:11,fontWeight:700,fontFamily:"'DM Mono', monospace",cursor:"pointer"}},"+"+a)),
                     React.createElement("div",{style:{display:"flex",gap:5,alignItems:"center"}},
-                      React.createElement("input",{type:"text",inputMode:"numeric",key:day.id+ex.id,defaultValue:"",onChange:e=>setCustomEntry(p=>({...p,[day.id+ex.id]:e.target.value})),placeholder:"Custom",style:{width:60,background:dark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)",border:`1px solid ${T.glassBorder}`,borderRadius:8,color:T.text,padding:"4px 8px",fontSize:11,fontFamily:"'DM Mono', monospace",outline:"none"}}),
+                      React.createElement("input",{type:"text",inputMode:"decimal",key:day.id+ex.id,defaultValue:"",onChange:e=>setCustomEntry(p=>({...p,[day.id+ex.id]:e.target.value})),placeholder:"Custom",style:{width:60,background:dark?"rgba(255,255,255,0.06)":"rgba(0,0,0,0.04)",border:`1px solid ${T.glassBorder}`,borderRadius:8,color:T.text,padding:"4px 8px",fontSize:11,fontFamily:"'DM Mono', monospace",outline:"none"}}),
                       React.createElement("button",{onClick:()=>{const v=parseInt(customEntry[day.id+ex.id]||"0");if(v>0){logAmount(selChallenge.id,day.id,ex.id,v);setCustomEntry(p=>({...p,[day.id+ex.id]:""}));}},style:{padding:"5px 10px",borderRadius:8,background:"#4ecdc4",border:"none",color:"#0d0d14",fontSize:11,fontWeight:700,fontFamily:"'DM Mono', monospace",cursor:"pointer"}},"Add")
                     )
                   )
@@ -10067,7 +10356,7 @@ function ChallengeView({
         }
       }, /*#__PURE__*/React.createElement("input", {
         type: "text",
-        inputMode: "numeric",
+        inputMode: "decimal",
         defaultValue: customEntry[ex.id] || "",
         onChange: e => setCustomEntry(p => ({
           ...p,
@@ -10233,7 +10522,7 @@ function ChallengeView({
     }
   }), /*#__PURE__*/React.createElement("input", {
     type: "text",
-    inputMode: "numeric",
+    inputMode: "decimal",
     defaultValue: ex.goal || "",
     onChange: e => {
       const n = [...manualExercises];
@@ -10555,6 +10844,72 @@ function ChallengeView({
     }, pct, "%")));
   }));
 }
+
+// ─── Audio + Notifications ────────────────────────────────────────────────────
+var _audioCtx = null;
+function _getCtx() {
+  try {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return _audioCtx;
+  } catch(e) { return null; }
+}
+
+function playBeep(type) {
+  try {
+    var ctx = _getCtx();
+    if (!ctx) return;
+    if (ctx.state === "suspended") { ctx.resume().then(function(){ playBeep(type); }); return; }
+    var osc = ctx.createOscillator();
+    var gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    if (type === "countdown") {
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.1);
+    } else {
+      // rest_done - triple beep
+      [0, 0.15, 0.3].forEach(function(t) {
+        var o = ctx.createOscillator(), g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 880;
+        g.gain.setValueAtTime(1.0, ctx.currentTime + t);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.3);
+        o.start(ctx.currentTime + t);
+        o.stop(ctx.currentTime + t + 0.3);
+      });
+    }
+  } catch(e) {}
+}
+
+var _notifTimeout = null;
+function scheduleTimerNotification(seconds, label) {
+  try {
+    cancelTimerNotification();
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission !== "granted") return;
+    _notifTimeout = setTimeout(function() {
+      try { new Notification(label || "Timer done", {body:"Time is up!",silent:false}); } catch(e){}
+    }, Math.max(0, seconds) * 1000);
+  } catch(e) {}
+}
+function cancelTimerNotification() {
+  if (_notifTimeout) { clearTimeout(_notifTimeout); _notifTimeout = null; }
+}
+
+// Unlock and resume audio on user interaction and visibility change
+function _resumeAudio() {
+  var ctx = _getCtx();
+  if (ctx && ctx.state === "suspended") ctx.resume();
+}
+document.addEventListener("touchstart", _resumeAudio, {passive: true});
+document.addEventListener("touchend", _resumeAudio, {passive: true});
+document.addEventListener("visibilitychange", function() {
+  if (document.visibilityState === "visible") _resumeAudio();
+});
+
 function WorkoutTracker() {
   const [locked, setLocked] = useState(false);
   const [plans, setPlans] = useState(() => {
@@ -10585,10 +10940,18 @@ function WorkoutTracker() {
     }
   });
   const [restOpen, setRestOpen] = useState(false);
+  const [restTarget, setRestTarget] = useState(90);
+  const [restMinimized, setRestMinimized] = useState(false);
+  const [restStartTime, setRestStartTime] = useState(null);
   const [editOpen, setEditOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // logKey to confirm delete
-  const [panelEx, setPanelEx] = useState(null); // {ex, accent} for exercise info panel
+  const [panelEx, setPanelEx] = useState(null);
+  const [formCueEx, setFormCueEx] = useState(null);
+  const [cardioTimerEx, setCardioTimerEx] = useState(null);
+  const [cardioTimerOpen, setCardioTimerOpen] = useState(false);
+  const [cardioTick, setCardioTick] = useState(0);
+  const [cardioStartTime, setCardioStartTime] = useState(null); // {ex, accent} for exercise info panel
   const [libAddTarget, setLibAddTarget] = useState(null); // exercise from library to add to a workout
   const [stretchLogs, setStretchLogs] = useState(loadStretchLogs);
   const [freeLogs, setFreeLogs] = useState(loadFreeLogs);
@@ -10608,6 +10971,7 @@ function WorkoutTracker() {
     });
   }
   const [timerState, setTimerState] = useState("idle");
+  const workoutStartedRef = useRef(false);
   const [timerElapsed, setTimerElapsed] = useState(0);
   const [timerStart, setTimerStart] = useState(null);
   const timerRef = useRef(null);
@@ -10636,6 +11000,28 @@ function WorkoutTracker() {
     setTimerElapsed(0);
     setTimerStart(null);
   }
+  useEffect(function() {
+    if (!cardioTimerEx || cardioTimerOpen) return;
+    var iv = setInterval(function(){ setCardioTick(function(t){return t+1;}); }, 1000);
+    return function(){ clearInterval(iv); };
+  }, [!!cardioTimerEx, cardioTimerOpen]);
+
+  // Tick for floating rest pill + auto-dismiss when done
+  const [restTick, setRestTick] = useState(0);
+  useEffect(function() {
+    if (!restMinimized || !restStartTime) return;
+    var iv = setInterval(function(){
+      var remaining = Math.max(0, restTarget - Math.floor((Date.now() - restStartTime)/1000));
+      setRestTick(function(t){return t+1;});
+      if (remaining <= 0) {
+        setRestMinimized(false);
+        setRestStartTime(null);
+        clearInterval(iv);
+      }
+    }, 1000);
+    return function(){ clearInterval(iv); };
+  }, [restMinimized, restStartTime]);
+
   useEffect(() => {
     if (timerState === "running") {
       timerRef.current = setInterval(() => setTimerElapsed(Math.floor((Date.now() - timerStart) / 1000)), 1000);
@@ -10721,21 +11107,24 @@ function WorkoutTracker() {
     });
     setDeleteConfirm(null);
   }
-  function onToggleSet(k) {
+  function onToggleSet(k, exName) {
+    var log = logs[logKey] || {};
+    var wasChecked = !!((log.checked || {})[k]);
+    var noSetsYet = !Object.values(log.checked || {}).some(Boolean);
+    var isFirstSet = !workoutStartedRef.current && !wasChecked && noSetsYet;
     mutate(l => {
-      const newC = {
-        ...l.checked,
-        [k]: !l.checked[k]
-      };
+      const newC = { ...l.checked, [k]: !l.checked[k] };
       const isFirst = !l.startedAt && newC[k] && !Object.values(l.checked).some(Boolean);
-      return {
-        ...l,
-        checked: newC,
-        ...(isFirst ? {
-          startedAt: new Date().toISOString()
-        } : {})
-      };
+      return { ...l, checked: newC, ...(isFirst ? { startedAt: new Date().toISOString() } : {}) };
     });
+    if (isFirstSet) startWorkout();
+    if (!wasChecked) {
+      var rt = getSuggestedRest(exName);
+      setRestTarget(rt);
+      setRestStartTime(Date.now());
+      setRestMinimized(false);
+      setRestOpen(true);
+    }
   }
   const onSaveWeight = useCallback((k, v) => mutate(l => ({
     ...l,
@@ -11094,7 +11483,7 @@ function WorkoutTracker() {
     const w = workouts[dayIdx],
       log = logs[`${dateKey}-${w.id}`] || {};
     const allEx = [...w.exercises, ...w.core];
-    if (!allEx.length) return null;
+    if (!allEx.length) return 0;
     const total = allEx.reduce((a, e) => a + (e.sets || 1), 0),
       done = Object.values(log.checked || {}).filter(Boolean).length;
     return Math.min(100, Math.round(done / total * 100));
@@ -11416,9 +11805,19 @@ function WorkoutTracker() {
     }
   }, "Cancel"))), /*#__PURE__*/React.createElement(RestTimerSheet, {
     open: restOpen,
-    onClose: () => setRestOpen(false),
+    onClose: () => { setRestOpen(false); setRestMinimized(true); },
+    onDismiss: () => { setRestOpen(false); setRestMinimized(false); setRestStartTime(null); },
+    initialTarget: restTarget,
     accent: workout.tagColor,
     T: T
+  }),
+  /*#__PURE__*/React.createElement(CardioTimerSheet, {
+    key: cardioTimerEx ? cardioTimerEx.name : "none",
+    open: cardioTimerOpen,
+    onClose: () => setCardioTimerOpen(false),
+    onDismiss: () => { setCardioTimerEx(null); setCardioTimerOpen(false); setCardioStartTime(null); },
+    onStart: (t) => setCardioStartTime(t),
+    ex: cardioTimerEx, accent: workout.tagColor, T: T, dark: dark
   }), panelEx && /*#__PURE__*/React.createElement(ExercisePanel, {
     ex: panelEx.ex,
     accent: panelEx.accent,
@@ -11831,7 +12230,15 @@ function WorkoutTracker() {
       fontFamily: "'DM Mono', monospace",
       marginBottom: 3
     }
-  }, workout.tag, " \xB7 Day ", workout.day), /*#__PURE__*/React.createElement("div", {
+  }, workout.tag, " \xB7 Day ", workout.day),
+    /*#__PURE__*/React.createElement("div",{style:{fontSize:9,color:T.textSub,fontFamily:"'DM Mono', monospace",marginTop:2}},
+      (function(){
+        var sets=([...(workout.exercises||[]),...(workout.core||[])]).reduce(function(a,e){return a+(e.sets||0);},0);
+        var mins=Math.round(sets*2.5); if(mins<5)return null;
+        return "~"+(mins>=60?Math.floor(mins/60)+"h "+(mins%60>0?mins%60+"m":""):mins+"m")+" estimated";
+      })()
+    ),
+     /*#__PURE__*/React.createElement("div", {
     style: {
       fontFamily: "'Outfit', sans-serif",
       fontSize: 16,
@@ -12082,6 +12489,7 @@ function WorkoutTracker() {
     dark: dark
   }) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(ExerciseSection, {
     exercises: workout.exercises,
+    onShowCardioTimer: ex => { setCardioTimerEx(ex); setCardioTimerOpen(true); },
     section: "ex",
     label: "Exercises",
     accent: workout.tagColor,
@@ -12097,6 +12505,7 @@ function WorkoutTracker() {
     onOpenPanel: onOpenPanel
   }), /*#__PURE__*/React.createElement(ExerciseSection, {
     exercises: workout.core,
+    onShowCardioTimer: ex => { setCardioTimerEx(ex); setCardioTimerOpen(true); },
     section: "core",
     label: "Core",
     accent: "#b794f4",
@@ -12110,26 +12519,33 @@ function WorkoutTracker() {
     onTogglePR: onTogglePR,
     onSwapExercise: onSwapExercise,
     onOpenPanel: onOpenPanel
-  }), workout.cardio.length > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8,
-      padding: "8px 14px",
-      borderRadius: 10,
-      marginBottom: 10,
-      background: T.glass,
-      backdropFilter: "blur(8px)",
-      border: `1px solid ${T.glassBorder}`,
-      fontSize: 11,
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace"
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 16
-    }
-  }, "\uD83C\uDFC3"), workout.cardio.map(c => `${c.name}${c.duration ? ` · ${c.duration}` : ""}`).join(" / "))), /*#__PURE__*/React.createElement("div", {
+  }), workout.cardio && workout.cardio.length > 0 && /*#__PURE__*/React.createElement("div",{style:{marginBottom:10}},
+    /*#__PURE__*/React.createElement("div",{style:{fontSize:9,letterSpacing:3,textTransform:"uppercase",color:T.textSub,fontFamily:"'DM Mono', monospace",marginBottom:6}},"Optional Cardio"),
+    workout.cardio.map(function(c,ci){
+      var tr=parseTimerRange(c.duration);
+      var cardioKey="cardio-"+ci;
+      var cx={name:c.name,duration:c.duration,id:cardioKey};
+      var done=!!((currentLog.checked||{})[cardioKey]);
+      var ac2=workout.tagColor||"#4ecdc4";
+      return /*#__PURE__*/React.createElement("div",{key:ci,style:{display:"flex",alignItems:"center",gap:10,padding:"10px 14px",borderRadius:12,marginBottom:6,background:done?"rgba(78,205,196,0.08)":T.glass,border:"1px solid "+(done?"rgba(78,205,196,0.4)":T.glassBorder),transition:"all 0.2s"}},
+        /*#__PURE__*/React.createElement("span",{style:{fontSize:16}},"\uD83C\uDFC3"),
+        /*#__PURE__*/React.createElement("div",{style:{flex:1,minWidth:0}},
+          /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:13,fontWeight:700,color:done?"#4ecdc4":T.text,textDecoration:done?"line-through":"none"}},c.name),
+          c.duration&&/*#__PURE__*/React.createElement("div",{style:{fontSize:9,color:"#4ecdc4",fontFamily:"'DM Mono', monospace",marginTop:2}},done?"Done! \u2713":"Time: "+c.duration)
+        ),
+        /*#__PURE__*/React.createElement("div",{style:{display:"flex",gap:6,alignItems:"center",flexShrink:0}},
+          tr&&!done&&/*#__PURE__*/React.createElement("button",{
+            onClick:function(){setCardioTimerEx(cx);setCardioTimerOpen(true);},
+            style:{padding:"6px 10px",borderRadius:10,background:"rgba(78,205,196,0.15)",border:"1px solid rgba(78,205,196,0.3)",color:"#4ecdc4",fontSize:10,fontWeight:700,fontFamily:"'DM Mono', monospace",cursor:"pointer"}
+          },"\u23F1"),
+          /*#__PURE__*/React.createElement("button",{
+            onClick:function(){mutate(function(l){var newC=Object.assign({},l.checked||{});newC[cardioKey]=!done;return Object.assign({},l,{checked:newC});});},
+            style:{width:28,height:28,borderRadius:"50%",border:"2px solid "+(done?ac2:T.glassBorder),background:done?ac2:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:done?"#0d0d14":T.textSub,fontSize:13,fontWeight:800,flexShrink:0,transition:"all 0.15s"}
+          },done?"\u2713":"")
+        )
+      );
+    })
+  ), /*#__PURE__*/React.createElement("div", {
     style: {
       background: T.glass,
       backdropFilter: "blur(8px)",
@@ -12167,7 +12583,36 @@ function WorkoutTracker() {
       outline: "none",
       lineHeight: 1.6
     }
-  })))), (view === "workout" || view === "stretch") && !workout.isRecovery && /*#__PURE__*/React.createElement("button", {
+  })))), restMinimized && restStartTime && /*#__PURE__*/React.createElement("button", {
+    onClick: () => { setRestMinimized(false); setRestOpen(true); },
+    style: {position:"fixed",bottom:170,right:16,zIndex:90,padding:"8px 14px",borderRadius:24,background:"#4ecdc4",border:"none",cursor:"pointer",boxShadow:"0 4px 16px rgba(78,205,196,0.4)",display:"flex",alignItems:"center",gap:8}
+  },
+    /*#__PURE__*/React.createElement("span",{style:{fontSize:14}}, "⏱"),
+    /*#__PURE__*/React.createElement("span",{style:{fontFamily:"'DM Mono', monospace",fontSize:12,fontWeight:700,color:"#0d0d14"}},
+      (function(){
+        var remaining = Math.max(0, restTarget - Math.floor((Date.now() - restStartTime)/1000));
+        var m = Math.floor(remaining/60), s = remaining%60;
+        return m>0 ? m+":"+(s<10?"0":"")+s : s+"s";
+      })()
+    )
+  ),
+  cardioTimerEx && !cardioTimerOpen && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setCardioTimerOpen(true),
+    style: {position:"fixed",bottom:130,right:16,zIndex:90,padding:"8px 14px",borderRadius:24,background:workout.tagColor||"#4ecdc4",border:"none",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.3)",display:"flex",alignItems:"center",gap:8}
+  },
+    /*#__PURE__*/React.createElement("span",{style:{fontSize:14}}, "\u23F1"),
+    /*#__PURE__*/React.createElement("span",{style:{fontFamily:"'DM Mono', monospace",fontSize:11,fontWeight:700,color:"#0d0d14"}},
+      (function(){
+        var name = cardioTimerEx ? (cardioTimerEx.name||"").split(" ")[0] : "";
+        if (cardioStartTime) {
+          var e = Math.floor((Date.now() - cardioStartTime)/1000);
+          return name+" "+Math.floor(e/60)+":"+(e%60<10?"0":"")+e%60;
+        }
+        return name;
+      })()
+    )
+  ),
+  (view === "workout" || view === "stretch") && !workout.isRecovery && /*#__PURE__*/React.createElement("button", {
     onClick: () => setRestOpen(true),
     style: {
       position: "fixed",
@@ -12202,7 +12647,7 @@ function WorkoutTracker() {
       letterSpacing: 0.5,
       marginTop: 1
     }
-  }, "REST"))));
+  }, "REST")))));
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(React.createElement(WorkoutTracker));</script></body></html>
