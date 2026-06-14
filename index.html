@@ -3168,6 +3168,11 @@ function RecoveryView({
 }) {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [selectedProgram, setSelectedProgram] = useState(null);
+
+  useSwipeBack(function() {
+    if (selectedProgram) setSelectedProgram(null);
+    else if (selectedActivity) setSelectedActivity(null);
+  }, !!(selectedActivity || selectedProgram));
   const activities = [{
     key: "walk",
     ...RECOVERY_PROGRAMS.walk
@@ -6758,7 +6763,7 @@ function StatsView({
       })
     )
   ),
-  tab === "photos" && /*#__PURE__*/React.createElement("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:500,background:T.bgGrad,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"0 0 100px"}},
+  tab === "photos" && /*#__PURE__*/React.createElement("div",{style:{position:"fixed",top:0,left:0,right:0,bottom:0,zIndex:500,background:T.bgGrad,overflowY:"auto",WebkitOverflowScrolling:"touch",padding:"0 0 100px"},onTouchStart:function(e){window._sx=e.touches[0].clientX;window._sy=e.touches[0].clientY;},onTouchEnd:function(e){var dx=e.changedTouches[0].clientX-(window._sx||0),dy=Math.abs(e.changedTouches[0].clientY-(window._sy||0));if(dx>80&&dy<80&&(window._sx||0)<60)setTab("workout");}},
     /*#__PURE__*/React.createElement("div",{style:{display:"flex",alignItems:"center",gap:12,padding:"16px 16px 0",marginBottom:16,position:"sticky",top:0,background:T.bgGrad,zIndex:1}},
       /*#__PURE__*/React.createElement("button",{onClick:function(){setTab("workout");},style:{background:"transparent",border:"none",color:T.textSub,fontSize:20,cursor:"pointer",padding:4}},"\u2190"),
       /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:18,fontWeight:800,color:T.text,flex:1}},"Progress Photos"),
@@ -10910,6 +10915,38 @@ document.addEventListener("visibilitychange", function() {
   if (document.visibilityState === "visible") _resumeAudio();
 });
 
+
+// ─── Swipe back gesture ────────────────────────────────────────────────────────
+function useSwipeBack(onBack, enabled) {
+  useEffect(function() {
+    if (!enabled) return;
+    var startX = 0, startY = 0, active = false;
+    function onTouchStart(e) {
+      if (e.touches[0].clientX < 30) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        active = true;
+      }
+    }
+    function onTouchEnd(e) {
+      if (!active) return;
+      active = false;
+      var dx = e.changedTouches[0].clientX - startX;
+      var dy = Math.abs(e.changedTouches[0].clientY - startY);
+      if (dx > 80 && dy < 80) onBack();
+    }
+    function onTouchCancel() { active = false; }
+    document.addEventListener("touchstart", onTouchStart, {passive:true});
+    document.addEventListener("touchend", onTouchEnd, {passive:true});
+    document.addEventListener("touchcancel", onTouchCancel, {passive:true});
+    return function() {
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchend", onTouchEnd);
+      document.removeEventListener("touchcancel", onTouchCancel);
+    };
+  }, [enabled]);
+}
+
 function WorkoutTracker() {
   const [locked, setLocked] = useState(false);
   const [plans, setPlans] = useState(() => {
@@ -11021,6 +11058,11 @@ function WorkoutTracker() {
     }, 1000);
     return function(){ clearInterval(iv); };
   }, [restMinimized, restStartTime]);
+
+  // Swipe right from edge to go back to workout view
+  useSwipeBack(function() {
+    if (view !== "workout") setView("workout");
+  }, view !== "workout");
 
   useEffect(() => {
     if (timerState === "running") {
