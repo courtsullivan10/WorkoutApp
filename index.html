@@ -1427,6 +1427,7 @@ const LOGS_KEY = "wt-v4-logs",
   THEME_KEY = "wt-theme",
   WORKOUTS_KEY = "wt-workouts",
   STRETCH_LOGS_KEY = "wt-stretch-logs",
+  DELOAD_KEY = "wt-deload",
   PLANS_KEY = "wt-plans",
   FREE_LOGS_KEY = "wt-free-logs";
 const CHALLENGES_KEY = "wt-challenges";
@@ -5759,18 +5760,23 @@ function JourneyStrip({
   }, wi === 0 || wi === 4 || wi === 8 || wi === 11 ? week.label.split(" ")[0] : ""))));
 }
 
-function PhotosGrid({T, dark, tick, setTab}) {
-  var photos = [];
-  try { photos = JSON.parse(localStorage.getItem("wt-photos") || "[]"); } catch(e) {}
+function PhotosGrid({T, dark, photos, savePhotos, setTab}) {
   var [lightbox, setLightbox] = useState(null);
+  var [editingDate, setEditingDate] = useState(null);
 
   function deletePhoto(id) {
-    var updated = photos.filter(function(p){ return p.id !== id; });
-    localStorage.setItem("wt-photos", JSON.stringify(updated));
+    savePhotos(photos.filter(function(p){ return p.id !== id; }));
     setLightbox(null);
   }
 
-  if (photos.length === 0) {
+  function updateDate(id, newDate) {
+    var updated = photos.map(function(p){ return p.id === id ? Object.assign({}, p, {date: newDate}) : p; });
+    savePhotos(updated);
+    setEditingDate(null);
+    setLightbox(function(lb) { return lb && lb.id === id ? Object.assign({}, lb, {date: newDate}) : lb; });
+  }
+
+  if (!photos || photos.length === 0) {
     return /*#__PURE__*/React.createElement("div", {style:{textAlign:"center",padding:"60px 20px",color:T.textSub,fontFamily:"'DM Mono', monospace",fontSize:12}},
       /*#__PURE__*/React.createElement("div", {style:{fontSize:14,marginBottom:12}}, "No photos yet"),
       "Tap + Add to upload your first progress photo"
@@ -5779,27 +5785,60 @@ function PhotosGrid({T, dark, tick, setTab}) {
 
   return /*#__PURE__*/React.createElement("div", {style:{padding:"0 16px"}},
     lightbox && /*#__PURE__*/React.createElement("div", {
-      style:{position:"fixed",inset:0,zIndex:600,background:"rgba(0,0,0,0.95)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center"},
-      onClick:function(){setLightbox(null);}
+      style:{position:"fixed",inset:0,zIndex:600,background:"rgba(0,0,0,0.95)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"20px"},
+      onClick:function(){setLightbox(null); setEditingDate(null);}
     },
-      /*#__PURE__*/React.createElement("img", {src:lightbox.src,style:{maxWidth:"90vw",maxHeight:"70vh",objectFit:"contain",borderRadius:8}}),
-      /*#__PURE__*/React.createElement("div", {style:{color:"rgba(255,255,255,0.6)",fontFamily:"'DM Mono', monospace",fontSize:10,marginTop:12}},
-        new Date(lightbox.date).toLocaleDateString()
+      /*#__PURE__*/React.createElement("img", {
+        src:lightbox.src,
+        style:{maxWidth:"90vw",maxHeight:"60vh",objectFit:"contain",borderRadius:8},
+        onClick:function(e){e.stopPropagation();}
+      }),
+      /*#__PURE__*/React.createElement("div", {
+        style:{marginTop:14,display:"flex",alignItems:"center",gap:10},
+        onClick:function(e){e.stopPropagation();}
+      },
+        editingDate === lightbox.id
+          ? /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:8}},
+              /*#__PURE__*/React.createElement("input", {
+                type:"date",
+                defaultValue: lightbox.date ? lightbox.date.slice(0,10) : new Date().toISOString().slice(0,10),
+                style:{background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,padding:"6px 10px",color:"#fff",fontFamily:"'DM Mono', monospace",fontSize:11},
+                onChange:function(e){ if(e.target.value) updateDate(lightbox.id, e.target.value); }
+              }),
+              /*#__PURE__*/React.createElement("button", {
+                onClick:function(){setEditingDate(null);},
+                style:{background:"transparent",border:"none",color:"rgba(255,255,255,0.5)",cursor:"pointer",fontSize:12,padding:"4px 8px"}
+              }, "cancel")
+            )
+          : /*#__PURE__*/React.createElement("button", {
+              onClick:function(e){e.stopPropagation(); setEditingDate(lightbox.id);},
+              style:{background:"transparent",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,padding:"6px 12px",color:"rgba(255,255,255,0.7)",fontFamily:"'DM Mono', monospace",fontSize:11,cursor:"pointer"}
+            }, lightbox.date ? new Date(lightbox.date + "T12:00:00").toLocaleDateString() : "Set date")
       ),
       /*#__PURE__*/React.createElement("button", {
-        onClick:function(e){e.stopPropagation();if(window.confirm("Delete this photo?"))deletePhoto(lightbox.id);},
-        style:{marginTop:16,padding:"8px 20px",borderRadius:10,background:"rgba(255,80,80,0.2)",border:"1px solid rgba(255,80,80,0.4)",color:"#ff5050",fontFamily:"'DM Mono', monospace",fontSize:11,cursor:"pointer"}
-      }, "Delete")
+        onClick:function(e){e.stopPropagation(); deletePhoto(lightbox.id);},
+        style:{marginTop:12,padding:"10px 24px",borderRadius:10,background:"rgba(255,80,80,0.25)",border:"1px solid rgba(255,80,80,0.5)",color:"#ff5050",fontFamily:"'DM Mono', monospace",fontSize:12,fontWeight:700,cursor:"pointer"}
+      }, "Delete Photo")
     ),
     /*#__PURE__*/React.createElement("div", {style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:4}},
       photos.map(function(p){
-        return /*#__PURE__*/React.createElement("div", {key:p.id,onClick:function(){setLightbox(p);},style:{aspectRatio:"1",borderRadius:8,overflow:"hidden",cursor:"pointer",background:T.glass}},
-          /*#__PURE__*/React.createElement("img", {src:p.src,style:{width:"100%",height:"100%",objectFit:"cover"}})
+        return /*#__PURE__*/React.createElement("div", {key:p.id,
+          style:{position:"relative",aspectRatio:"1",borderRadius:8,overflow:"hidden",cursor:"pointer",background:T.glass}
+        },
+          /*#__PURE__*/React.createElement("img", {
+            src:p.src,
+            style:{width:"100%",height:"100%",objectFit:"cover"},
+            onClick:function(){setLightbox(p);}
+          }),
+          /*#__PURE__*/React.createElement("div", {
+            style:{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.5)",padding:"3px 5px",fontSize:8,color:"rgba(255,255,255,0.8)",fontFamily:"'DM Mono', monospace",pointerEvents:"none"}
+          }, p.date ? new Date(p.date + "T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric"}) : "")
         );
       })
     )
   );
 }
+
 
 function StatsView({
   logs,
@@ -5811,6 +5850,13 @@ function StatsView({
 }) {
   const [tab, setTab] = useState("workout");
   const [photoTick, setPhotoTick] = useState(0);
+  const [photos, setPhotos] = useState(function() {
+    try { return JSON.parse(localStorage.getItem("wt-photos") || "[]"); } catch(e) { return []; }
+  });
+  function savePhotos(updated) {
+    localStorage.setItem("wt-photos", JSON.stringify(updated));
+    setPhotos(updated);
+  }
   const today = new Date();
   const thisMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
 
@@ -6774,17 +6820,15 @@ function StatsView({
             var file=e.target.files&&e.target.files[0]; if(!file)return;
             var reader=new FileReader();
             reader.onload=function(ev){
-              var photos=JSON.parse(localStorage.getItem("wt-photos")||"[]");
-              photos.unshift({id:Date.now(),date:new Date().toISOString(),src:ev.target.result});
-              localStorage.setItem("wt-photos",JSON.stringify(photos));
-              setPhotoTick(function(t){return t+1;});
+              var newPhoto={id:Date.now(),date:new Date().toISOString().slice(0,10),src:ev.target.result};
+              savePhotos([newPhoto].concat(photos));
             };
             reader.readAsDataURL(file);
           }
         })
       )
     ),
-    /*#__PURE__*/React.createElement(PhotosGrid,{T:T,dark:dark,tick:photoTick,setTab:setTab})))
+    /*#__PURE__*/React.createElement(PhotosGrid,{T:T,dark:dark,photos:photos,savePhotos:savePhotos,setTab:setTab})))
 }
 
 // ─── Rest Timer ────────────────────────────────────────────────────────────────
@@ -6793,34 +6837,41 @@ function RestTimerSheet({
   open,
   onClose,
   onDismiss,
+  onTargetChange,
   initialTarget,
+  startTime,
   accent,
   T
 }) {
-  const [target, setTarget] = useState(initialTarget || 90),
-    [elapsed, setElapsed] = useState(0),
-    [running, setRunning] = useState(false);
+  const [target, setTarget] = useState(initialTarget || 90);
+  const [elapsed, setElapsed] = useState(0);
+  const [running, setRunning] = useState(false);
   const ivl = useRef(null);
-  const startTimeRef = useRef(null);
 
+  // When a NEW rest period starts (startTime changes), reset target and start timer
   useEffect(() => {
-    if (open) {
-      startTimeRef.current = Date.now();
+    if (open && startTime) {
+      setTarget(initialTarget || 90);
       setElapsed(0);
       setRunning(true);
-      // Schedule notification
-      if (typeof Notification !== "undefined" && Notification.permission === "default") {
-        Notification.requestPermission();
+      scheduleTimerNotification(initialTarget || 90, "Rest done — time to lift!");
+    }
+  }, [startTime]);
+
+  // When reopened after minimize, just resume display (don't reset)
+  useEffect(() => {
+    if (open && startTime && !running) {
+      var e = Math.floor((Date.now() - startTime) / 1000);
+      if (e < (initialTarget || 90)) {
+        setRunning(true);
       }
-      scheduleTimerNotification(target, "Rest done — time to lift!");
     }
   }, [open]);
 
   useEffect(() => {
-    if (running) {
+    if (running && startTime) {
       ivl.current = setInterval(() => {
-        if (!startTimeRef.current) return;
-        var e = Math.floor((Date.now() - startTimeRef.current) / 1000);
+        var e = Math.floor((Date.now() - startTime) / 1000);
         if (e >= target) {
           setElapsed(target);
           setRunning(false);
@@ -6831,7 +6882,7 @@ function RestTimerSheet({
       }, 500);
     } else clearInterval(ivl.current);
     return () => clearInterval(ivl.current);
-  }, [running, target]);
+  }, [running, target, startTime]);
   if (!open) return null;
   const remaining = Math.max(0, target - elapsed),
     pct = Math.min(100, elapsed / target * 100),
@@ -6863,15 +6914,21 @@ function RestTimerSheet({
       border: `1px solid ${T.glassBorder}`,
       boxShadow: "0 -8px 40px rgba(0,0,0,0.4)"
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 36,
-      height: 4,
-      background: T.glassBorder,
-      borderRadius: 2,
-      margin: "0 auto 18px"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React.createElement("div", {style:{position:"relative",marginBottom:4}},
+    /*#__PURE__*/React.createElement("div", {
+      style: {
+        width: 36,
+        height: 4,
+        background: T.glassBorder,
+        borderRadius: 2,
+        margin: "0 auto 14px"
+      }
+    }),
+    /*#__PURE__*/React.createElement("button", {
+      onClick: onClose,
+      style:{position:"absolute",top:-4,right:0,background:"transparent",border:"none",color:T.textSub,fontSize:11,cursor:"pointer",fontFamily:"'DM Mono', monospace",padding:"2px 6px",borderRadius:6,lineHeight:1}
+    }, "minimize")
+  ), /*#__PURE__*/React.createElement("div", {
     style: {
       textAlign: "center",
       marginBottom: 18
@@ -6964,6 +7021,7 @@ function RestTimerSheet({
         setTarget(t);
         setElapsed(0);
         setRunning(true);
+        if (onTargetChange) onTargetChange(t);
       },
       style: {
         padding: "6px 14px",
@@ -7012,19 +7070,19 @@ function RestTimerSheet({
       cursor: "pointer"
     }
   }, running ? "⏸ Pause" : "▶ Resume"), /*#__PURE__*/React.createElement("button", {
-    onClick: onClose,
+    onClick: () => { if (onDismiss) onDismiss(); },
     style: {
       flex: 1,
       padding: "12px",
       borderRadius: 14,
-      background: T.pill,
-      border: `1px solid ${T.glassBorder}`,
-      color: T.text,
+      background: "rgba(255,80,80,0.15)",
+      border: "1px solid rgba(255,80,80,0.3)",
+      color: "#ff5050",
       fontSize: 13,
       fontFamily: "'DM Mono', monospace",
       cursor: "pointer"
     }
-  }, "Minimize"))));
+  }, "Stop"))))
 }
 
 // ─── EditorExRow (hoisted outside WorkoutEditorSheet to prevent focus loss) ─────
@@ -7880,6 +7938,353 @@ function getSuggestedRestLabel(name) {
   return "45s rest";
 }
 
+
+// ─── Form Cues ─────────────────────────────────────────────────────────────────
+const FORM_CUES = {
+  "Barbell Squats": ["Brace your core before descending — 360 pressure around your belt","Knees track over toes, not caving inward","Break at hips and knees simultaneously","Keep chest tall, don't let upper back round","Drive through the whole foot","Depth: hip crease below parallel if mobility allows"],
+  "Romanian Deadlift": ["Hinge at the hips — push your hips back","Micro-bend in knees throughout","Bar stays close to your legs the entire movement","Feel the stretch in your hamstrings at the bottom","Squeeze glutes hard at the top, don't hyperextend"],
+  "Barbell Bench Press": ["Retract and depress shoulder blades before unracking","Feet flat on floor, drive them into the ground","Bar path is slightly diagonal — not straight up","Touch chest lightly, 1-2 inches below nipple line","Don't flare elbows — about 45-75 degrees from torso"],
+  "Incline DB Press": ["Set bench to 30-45 degrees","Same scapular retraction as flat bench","Control the eccentric — 2-3 seconds down","Full stretch at bottom, full squeeze at top","Neutral wrist position throughout"],
+  "DB Shoulder Press": ["Press slightly in front of your head","Don't arch lower back — brace your core","Lower to roughly ear height for full ROM","Avoid shrugging — keep traps relaxed","Exhale on the press, inhale on the way down"],
+  "Lateral Raises": ["Lead with your elbows, not your wrists","Slight forward lean targets lateral delt better","Stop at shoulder height","Control the negative — don't let them drop","Slight external rotation: pinky slightly higher than thumb"],
+  "Lat Pulldowns": ["Pull to your upper chest, not behind your neck","Lean back slightly — about 10-15 degrees","Think elbows to your back pockets","Full stretch at top — let scaps elevate","Squeeze lats hard at the bottom"],
+  "Seated Cable Rows": ["Don't round your lower back at full extension","Pull to your lower chest/upper abdomen","Drive elbows back past your torso","Shoulders back and down throughout","Control the eccentric"],
+  "Single Arm DB Row": ["Brace your core hard — don't rotate your torso","Pull elbow up and back, not just back","Stretch fully at the bottom","Keep hips square throughout"],
+  "Hip Thrusts": ["Drive through your heels, not your toes","Chin tucked — don't extend your neck at the top","Full hip extension at top — squeeze glutes hard","Bench should be across your mid-upper back","Don't go too heavy before you can feel your glutes"],
+  "Leg Press": ["Don't lock knees out at the top","Feet hip-width for quad focus, wider for glute/inner thigh","Control the descent","Don't let your lower back peel off the pad","Depth: thighs at least parallel"],
+  "Leg Extensions": ["Pause at the top — squeeze quads hard","Control the eccentric","Don't let hips lift off the seat","Full range of motion"],
+  "Lying Leg Curls": ["Squeeze glutes slightly to protect lower back","Don't let hips lift off the pad","Curl all the way to full hamstring contraction","Control the negative slowly"],
+  "Standing Calf Raises": ["Full range of motion — stretch all the way down","Pause at the top","Slow and controlled beats heavy and bouncy","3-second hold at the bottom stretch"],
+  "Dumbbell Curls": ["Don't swing — if you need momentum, drop the weight","Supinate your wrist at the top","Full extension at the bottom","Keep elbows pinned at your sides","Squeeze the bicep at the top"],
+  "Hammer Curls": ["Neutral grip throughout — thumb on top","Targets brachialis and brachioradialis","Full extension at bottom","Slow controlled tempo"],
+  "Tricep Pushdowns": ["Elbows pinned to your sides","Full extension at bottom — squeeze tricep hard","Don't lean forward excessively","Control the return"],
+  "Overhead Tricep Extension": ["Long head gets maximum stretch here","Keep elbows pointing forward, not flaring out","Full ROM — lower as far as comfortable","Brace core — don't arch lower back"],
+  "Face Pulls": ["Pull to your face — eye to nose level","External rotate at the end — thumbs go back","Retract scapulae at peak contraction","Light weight, high reps, perfect form"],
+  "Pull-Ups": ["Dead hang start — full shoulder extension","Drive elbows down and back","Chin clears the bar — full ROM","Control the lowering phase"],
+  "Push-Ups": ["Body is a straight line from head to heels","Elbows at 45 degrees, not flared at 90","Full ROM — chest touches the floor","Squeeze glutes and brace core throughout"],
+  "Plank": ["Squeeze glutes and quads — not just abs","Neutral spine — don't sag or pike","Breathe normally","Forearms parallel, elbows under shoulders"],
+  "Deadlift": ["Hip hinge to the bar — don't squat it","Bar over mid-foot at setup","Lat engagement before you pull","Push the floor away — don't think pull up","Lock hips and knees simultaneously at the top"],
+  "Barbell Rows": ["Hinge to about 45 degrees","Pull to your lower chest/upper abdomen","Squeeze shoulder blades at the top","Control the eccentric"],
+  "Goblet Squats": ["Hold the dumbbell at your sternum","Elbows inside knees at the bottom","Stay upright — counterbalance helps","Go deep — goblet position encourages depth"],
+  "Barbell Curls": ["Keep elbows pinned — no swinging","Supinate at the top for full contraction","Full extension at the bottom","Slow eccentric beats heavy and sloppy"],
+  "Cable Flyes": ["Slight forward lean from hips","Arms slightly bent throughout","Think hugging a tree","Squeeze chest at the center — pause there","Full stretch at the start is key"],
+  "Glute Bridges": ["Drive through your heels","Squeeze glutes at the top — hold 1-2 seconds","Don't arch your lower back at the top","Feet flat, about hip-width"],
+  "Bulgarian Split Squats": ["Front foot far enough forward that knee stays over toes","Vertical shin on front leg at the bottom","Most weight through the front foot","Control the descent"],
+  "Cable Lateral Raises": ["Lead with elbows, stop at shoulder height","Cable provides constant tension","Don't shrug — keep traps relaxed"],
+  "Chest Supported Rows": ["Chest against the pad removes lower back","Pull to your lower chest","Elbows at 45 degrees — not flared wide","Full stretch at the bottom"],
+  "Ab Wheel Rollout": ["Brace core maximally before rolling out","Hips stay level — don't sag","Roll out only as far as you can control","Pulling back uses lats as much as abs"],
+  "Cable Crunches": ["Pull with your abs, not your arms","Round your spine — elbows to knees","Hold at the bottom for 1 second","Control the return"],
+  "Dead Bug": ["Lower back pressed into the floor throughout","Move opposite arm and leg simultaneously","Breathe out as you extend","Start slow — control is everything"],
+  "Reverse Crunches": ["Lower back stays flat — posterior pelvic tilt","Drive knees toward chest, not feet","Control the return — don't let legs drop","Exhale as you curl"],
+  "Mountain Climbers": ["Keep hips level — don't bob up and down","Drive knee toward chest fully","Core braced throughout","Keep shoulders over wrists"],
+  "Hollow Hold": ["Lower back pressed flat into floor","Arms overhead or crossed on chest — start easier","Legs as low as you can without back arching","Breathe — don't hold it"],
+  "Russian Twists": ["Lean back slightly — about 45 degrees","Rotate from your core, not just your arms","Keep feet off floor for more difficulty","Controlled rotation, don't fling"],
+  "Cable Crunches": ["Pull with your abs, not your arms","Round your spine — elbows to knees","Hold at bottom for 1 second","Control the return"],
+  "Arnold Press": ["Starts with palms facing you, rotate to palms forward as you press","Full ROM — lower to chin level","Don't rush the rotation — it's the whole point","Great for all three delt heads","Keep core braced throughout"],
+  "Barbell Hip Thrusts": ["Bar pad across hip crease — not on your stomach","Drive through heels, feet hip-width","Full hip extension at top — squeeze hard","Don't hyperextend your lower back at the top","Chin tucked throughout"],
+  "Banded Hip Thrusts": ["Same mechanics as barbell — band adds resistance at the top","Position band just above knees to activate glutes harder","Squeeze hard at the top — pause 1 second","Great for learning the hip thrust pattern before loading"],
+  "Barbell OHP": ["Press in a straight line overhead","Bar starts at upper chest/collarbone level","Squeeze glutes and brace core — don't arch excessively","Drive head forward slightly at the top","Full lockout at the top"],
+  "Battle Ropes": ["Anchor feet hip-width, slight knee bend","Drive from your hips and core — not just arms","Keep alternating waves consistent — don't slow down","Breathe rhythmically throughout","Great for conditioning — keep rest short"],
+  "Bodyweight Squats": ["Same mechanics as barbell squat — arms forward for balance","Depth: thighs parallel or below","Drive knees out over toes","Great warm-up before loaded squats","Control the descent"],
+  "Box Jumps": ["Land softly — absorb through hips, knees, and ankles","Full extension at takeoff — triple extension","Step down, don't jump down — protects knees","Reset fully before each rep","Focus on quality over height"],
+  "Burpees": ["Plank position at the bottom — no sagging hips","Chest to floor for full ROM","Explosive jump at the top — arms overhead","Breathe rhythmically","Modify by stepping out instead of jumping if needed"],
+  "Cable Curls": ["Pulley at floor level for standard curls","Constant tension throughout the entire rep","Elbows pinned — no forward body lean","Great peak contraction at the top"],
+  "Cable Hamstring Curl": ["Attach ankle cuff low on the cable","Hinge slightly at the hip for better stretch","Curl heel toward glute — full ROM","Control the return — don't let cable pull you back","Squeeze hamstring hard at the top"],
+  "Cable Hip Abduction": ["Stand sideways to the cable","Control the return — don't let it snap back","Feel glute med working, not your hip flexor","Keep torso upright — don't lean","15-20 reps work well here"],
+  "Cable Kickbacks": ["Hinge slightly at the hip","Drive heel back and up — full hip extension","Squeeze glute hard at the top","Slow and controlled — no momentum","Keep hips square, don't rotate"],
+  "Cable Pull-Throughs": ["This is a hip hinge — not a squat","Push your hips back aggressively","Squeeze glutes hard at the top lockout","Arms are just hooks — don't pull with your arms","Keep your back flat throughout"],
+  "Chest Press": ["Machine — adjust seat so handles are at chest height","Same mechanics as bench press","Full ROM — arms straight at extension","Controlled return — don't slam the stack"],
+  "Clamshells": ["Band above knees for resistance","Feet stacked, hips forward","Rotate top knee up like a clamshell opening","Don't let your hips rock back","Higher reps work well — 20-25"],
+  "Close-Grip Bench": ["Hands about shoulder-width — not too narrow (wrist strain)","Elbows closer to body than regular bench","Focuses on triceps and inner chest","Same setup as regular bench — scapular retraction","Full ROM — don't half rep"],
+  "Concentration Curls": ["Elbow braced on inside of thigh","Full ROM — full extension to full contraction","No swinging whatsoever — pure isolation","Slow eccentric","Great for bicep peak development"],
+  "Copenhagen Plank": ["Top foot on bench, bottom foot hanging","Keep hips level — don't sag","Targets adductors and core","Very challenging — start with short holds"],
+  "Cossack Squats": ["Wide stance, toes turned out","Shift weight to one side — sit deep into the hip","Keep grounded foot flat if possible","Excellent hip mobility exercise","Go as deep as flexibility allows"],
+  "Curtsy Lunges": ["Step back and across — like a curtsy","Keep front knee tracking over toes","Upright torso throughout","Great for glute med and upper glute","Control the descent"],
+  "Donkey Kicks": ["Keep hips square to the ground — don't rotate","Drive heel toward ceiling — full hip extension","Squeeze glute at the top","Slow and controlled","Add ankle weights or cable for progressive overload"],
+  "Dragon Flag": ["Start lying on bench, grip above your head","Keep body perfectly straight — don't pike","Lower under control — no dropping","Core and lats work together","Very advanced — build up to it"],
+  "Fire Hydrants": ["Move from the hip, not the knee","Keep working leg's hip square","Full ROM — lift as high as comfortable","Slow and controlled — feel glute med","Band above knees adds resistance"],
+  "Flat Barbell Bench": ["Retract and depress shoulder blades before unracking","Feet flat on floor, drive them into the ground","Bar path is slightly diagonal","Touch chest lightly, 1-2 inches below nipple line","Don't flare elbows — about 45-75 degrees from torso"],
+  "Frog Pumps": ["On your back, soles of feet together — butterfly position","Drive hips up, squeeze glutes at top","Short ROM but high reps — 20-30+","Great for glute activation before heavier work"],
+  "Front Squats": ["Bar rests on front delts — fingertips under bar or crossed arms","Elbows high throughout — this is critical","More upright torso than back squat","Core braced hard — front squats demand it","Ankles often need mobility work"],
+  "Glute Bridges (unweighted)": ["Drive through your heels","Squeeze glutes at the top — hold 1-2 seconds","Don't arch your lower back at the top","Feet flat, about hip-width","Progress to weighted hip thrusts"],
+  "Good Mornings": ["This is a hip hinge, not a squat","Push hips back as you lower","Slight knee bend — not locked out","Feel the hamstring stretch at the bottom","Light weight, perfect form — dangerous if done wrong"],
+  "Hack Squats": ["Feet shoulder-width, toes slightly out on platform","Back against pad throughout — don't peel off","Deep as mobility allows","Drive through whole foot","Adjust foot position for quad vs. glute emphasis"],
+  "Hamstring Curls": ["Don't let hips lift off the pad","Curl all the way — full hamstring contraction","Control the eccentric slowly","Point toes slightly for more biceps femoris activation"],
+  "Hanging Knee Raises": ["Dead hang start — full shoulder engagement","Tuck knees to chest — not just hip flexion","Control the lowering — don't swing","Posterior pelvic tilt at top for more ab activation","Progress to straight leg raises"],
+  "Heel Taps": ["Lower back flat on the floor — always","Feet in the air, knees bent at 90 degrees","Alternate tapping heels to the floor","Keep core braced — don't let back arch","Slow and controlled"],
+  "High Knees": ["Drive knees up to hip height","Pump arms actively — coordinate with legs","Stay on balls of feet","Keep torso upright","Great cardio warm-up or finisher"],
+  "Inchworms": ["Stand tall, hinge at hips to touch floor","Walk hands out to push-up position","Optional push-up at the bottom","Walk feet back to hands","Great warm-up for full-body mobility"],
+  "Incline DB Curls": ["Incline position puts bicep on stretch at the bottom","This increases ROM vs. standing curls","Don't let elbows drift forward as you curl","Full extension is key for this exercise","Can supinate at the top for extra contraction"],
+  "Jump Rope": ["Stay on balls of feet — don't flat-foot","Keep elbows close to sides, wrists do the work","Small, consistent jumps — height isn't the goal","Keep a rhythm — consistency beats speed","Great for conditioning and coordination"],
+  "Jumping Jacks": ["Land softly — absorb through the knees","Coordinate arms and legs together","Keep a steady rhythm","Good warm-up or cardio filler"],
+  "Lateral Lunges": ["Step wide to the side, hinge at working leg hip","Knee tracks over toes on working leg","Straight leg stays straight","Push through heel to return","Great for adductors and glute med"],
+  "Leg Raises": ["Lower back stays flat — posterior pelvic tilt","Slow lowering is where the work happens","If too hard, bend knees slightly","Progress to hanging leg raises","Add ankle weights for overload"],
+  "Nordic Curls": ["Kneel with feet anchored","Lower your body as slowly as possible — this is the work","Use hands to catch yourself at the bottom","Pull yourself back up with hamstrings + push with hands","Extremely effective but very challenging"],
+  "Pallof Press": ["Stand sideways to the cable anchor","Press straight out — resist the rotation","Hold for 1-2 seconds fully extended","Core braces against the pull","Don't let hips twist"],
+  "Planks": ["Squeeze glutes and quads — not just abs","Neutral spine — don't sag or pike","Breathe normally — don't hold your breath","Forearms parallel, elbows under shoulders","Progress by reducing rest or adding weight"],
+  "Pull-ups / Pulldowns": ["Dead hang start — full shoulder extension","Drive elbows down and back","Chin clears the bar — full ROM","Control the lowering phase","Scapular pull-ups are a great warm-up"],
+  "Rear Delt Flys": ["Hinge forward at hips or use chest-supported position","Lead with elbows — arms slightly bent","Raise to shoulder height only","Squeeze rear delts at the top — pause there","Light weight and feel the contraction"],
+  "Reverse Hyperextensions": ["Hips at the edge of the bench","Drive legs up to parallel — don't hyperextend","Squeeze glutes at the top","Control the return — don't swing","Great for posterior chain without spinal compression"],
+  "Reverse Lunge + Knee Drive": ["Step back into lunge — controlled landing","Drive front knee up as you return — explosive","Stay tall throughout","Great for single-leg strength and balance","Control the lunge down, power the drive up"],
+  "Reverse Lunges": ["Step back with control — vertical shin on front leg","Front knee stays over ankle","Drive through front heel to return","Core braced throughout","Easier on knees than forward lunges"],
+  "Romanian Deadlifts": ["Hinge at the hips — push your hips back","Micro-bend in knees throughout","Bar stays close to your legs","Feel the stretch in your hamstrings at the bottom","Squeeze glutes hard at the top"],
+  "Rowing Machine": ["Drive through your legs first — then lean back — then pull","Don't lean too far back — about 10 degrees behind vertical","Full extension on the drive — legs, back, arms","On the return: arms — body — legs","Keep a consistent rhythm and stroke rate"],
+  "Scapular Push-Ups": ["Start in push-up position, arms locked out","Let chest sink by pinching shoulder blades together","Push back up by spreading shoulder blades apart","Arms stay completely straight throughout","Excellent for shoulder health and stability"],
+  "Side Planks": ["Stack feet or stagger them for stability","Keep hips high — don't let them sag","Body forms a straight line","Can add hip dips for extra challenge","Build time gradually"],
+  "Side-Lying Leg Raises": ["Lie on your side, body in a straight line","Raise top leg to about 45 degrees","Control the return — don't drop it","Keep hips stacked throughout","Add ankle weights to progress"],
+  "Single-Arm DB Rows": ["Brace your core hard — don't rotate your torso","Pull elbow up and back, not just back","Stretch fully at the bottom","Keep hips square throughout"],
+  "Single-Leg Hip Thrusts": ["Same setup as bilateral — one foot elevated","Drive through the heel of the working leg","Keep hips level — don't let one side drop","Squeeze glute hard at the top","Much harder than bilateral — reduce weight significantly"],
+  "Single-Leg RDLs": ["Hinge at the hip — standing leg has slight bend","Keep back flat — don't round","Non-working leg goes back as hip hinge deepens","Feel the hamstring stretch on working leg","Use a wall for balance if needed"],
+  "Skull Crushers": ["Lower bar or dumbbells to forehead — or just behind it","Elbows stay pointed at the ceiling","Don't let elbows flare out","Full extension at the top","Superset well with close-grip bench"],
+  "Squats": ["Brace your core before you descend","Knees track over toes, not caving inward","Break at hips and knees simultaneously","Keep chest tall — don't let upper back round","Drive through the whole foot"],
+  "Stability Ball Curls": ["Lie on back, heels on ball","Drive hips up first — then curl ball toward you","Keep hips high throughout the curl","Control the return — extend legs fully","Great for hamstrings with hip stability challenge"],
+  "Stairmaster": ["Don't lean on the handrails — that defeats the purpose","Full step down — don't just tap","Keep an upright posture","Vary speed and resistance to prevent adaptation","Great low-impact cardio"],
+  "Step-Ups": ["Drive through the heel of the elevated foot","Don't push off the floor foot — all work from top leg","Keep torso upright","Control the step down","Add weight when bodyweight becomes easy"],
+  "Stiff-Leg Deadlifts": ["Similar to RDL but legs straighter","Feel a strong hamstring stretch at the bottom","Keep the bar close to your legs","Back stays flat throughout","Don't round — this is a mobility-limited movement"],
+  "Straight-Arm Pulldowns": ["Arms stay straight throughout","Hinge slightly at hips — lean forward a bit","Drive elbows toward hips in an arc","Feel the lats stretching at the top","Great lat isolation — good warm-up or finisher"],
+  "T-Bar Rows": ["Similar mechanics to barbell rows","Chest against the pad for chest-supported variation","Pull to lower chest — elbows close to body","Squeeze shoulder blades at the top","Full stretch at the bottom"],
+  "Tricep Dips": ["Keep torso upright for tricep focus — lean forward shifts to chest","Lower until upper arms are parallel to floor","Don't flare elbows out","Full lockout at the top","Add weight when bodyweight becomes easy"],
+  "Upright Rows": ["Grip just inside shoulder-width","Pull to chin level — lead with elbows","Don't go too heavy — can impinge shoulders","Keep the bar close to your body","Cable version is more shoulder-friendly than barbell"],
+  "Abductor Machine": ["Full ROM — controlled return","Don't slam the weight stack","Feel glute med working, not your lower back","15-20 reps work well","Good finisher for glute-focused sessions"],
+  "Band Pull-Aparts": ["Arms straight, band at chest height","Pull band to chest, squeezing scapulae","External rotation — hands end facing ceiling","Great for shoulder health and rear delts","Use for warm-up or as accessory work"],
+  "Arnold Press": ["Starts with palms facing you, rotate to palms forward as you press","Full ROM — lower to chin level","Don't rush the rotation","Great for all three delt heads","Keep core braced throughout"],
+  "Barbell Hip Thrusts": ["Bar pad across hip crease — not your stomach","Drive through heels, feet hip-width","Full hip extension at top — squeeze hard","Don't hyperextend your lower back","Chin tucked throughout"],
+  "Banded Hip Thrusts": ["Same mechanics as barbell — band adds resistance at the top","Position band just above knees to activate glutes harder","Squeeze hard at top — pause 1 second"],
+  "Barbell OHP": ["Press in a straight line overhead","Bar starts at upper chest/collarbone","Squeeze glutes and brace core — don't arch","Drive head forward slightly at top","Full lockout"],
+  "Battle Ropes": ["Drive from hips and core — not just arms","Keep alternating waves consistent","Breathe rhythmically","Great for conditioning"],
+  "Bodyweight Squats": ["Same mechanics as barbell — arms forward for balance","Depth: thighs parallel or below","Drive knees out over toes","Great warm-up before loaded squats"],
+  "Box Jumps": ["Land softly — absorb through hips, knees, and ankles","Full triple extension at takeoff","Step down, don't jump down — protects knees","Reset fully before each rep"],
+  "Burpees": ["Plank position at bottom — no sagging hips","Chest to floor for full ROM","Explosive jump at top","Breathe rhythmically"],
+  "Cable Curls": ["Pulley at floor level","Constant tension throughout","Elbows pinned — no forward body lean"],
+  "Cable Hamstring Curl": ["Hinge slightly at hip for better stretch","Curl heel toward glute — full ROM","Control the return","Squeeze hamstring hard at top"],
+  "Cable Hip Abduction": ["Stand sideways to cable","Control the return","Feel glute med — not hip flexor","Keep torso upright","15-20 reps work well"],
+  "Cable Kickbacks": ["Hinge slightly at the hip","Drive heel back and up — full extension","Squeeze glute at top","No momentum — keep hips square"],
+  "Cable Pull-Throughs": ["Hip hinge — not a squat","Push hips back aggressively","Squeeze glutes hard at lockout","Arms are just hooks — don't pull with them"],
+  "Chest Press": ["Adjust seat so handles are at chest height","Same mechanics as bench press","Full ROM","Controlled return — don't slam the stack"],
+  "Clamshells": ["Band above knees","Feet stacked, hips forward","Rotate top knee up like a clamshell","Don't let hips rock back","20-25 reps work well"],
+  "Close-Grip Bench": ["Hands about shoulder-width — not too narrow","Elbows closer to body than regular bench","Focuses on triceps and inner chest","Full ROM"],
+  "Concentration Curls": ["Elbow braced on inside of thigh","Full ROM — full extension to full contraction","No swinging — pure isolation","Slow eccentric"],
+  "Copenhagen Plank": ["Top foot on bench, bottom foot hanging","Keep hips level","Targets adductors and core","Very challenging — start with short holds"],
+  "Cossack Squats": ["Wide stance, toes turned out","Shift weight to one side — sit deep","Keep grounded foot flat if possible","Excellent hip mobility exercise"],
+  "Curtsy Lunges": ["Step back and across — like a curtsy","Keep front knee over toes","Upright torso","Great for glute med and upper glute"],
+  "Donkey Kicks": ["Keep hips square — don't rotate","Drive heel toward ceiling","Squeeze glute at top","Slow and controlled"],
+  "Dragon Flag": ["Keep body perfectly straight — don't pike","Lower under control — no dropping","Very advanced — build up to it"],
+  "Fire Hydrants": ["Move from the hip, not the knee","Keep working leg hip square","Full ROM","Slow and controlled — feel glute med"],
+  "Flat Barbell Bench": ["Retract and depress shoulder blades before unracking","Feet flat, drive into ground","Touch chest 1-2 inches below nipple line","Don't flare elbows"],
+  "Frog Pumps": ["Soles of feet together — butterfly position","Drive hips up, squeeze glutes","Short ROM but high reps — 20-30+","Great for glute activation"],
+  "Front Squats": ["Bar rests on front delts — elbows HIGH","More upright torso than back squat","Core braced hard — front squats demand it","Ankles often need mobility work"],
+  "Glute Bridges (unweighted)": ["Drive through your heels","Squeeze glutes at top — hold 1-2 seconds","Don't arch lower back","Progress to weighted hip thrusts"],
+  "Good Mornings": ["Hip hinge — not a squat","Push hips back as you lower","Slight knee bend","Feel hamstring stretch at bottom","Light weight, perfect form"],
+  "Hack Squats": ["Back against pad throughout","Deep as mobility allows","Adjust foot position for quad vs. glute emphasis"],
+  "Hamstring Curls": ["Don't let hips lift off the pad","Curl all the way — full contraction","Control the eccentric slowly"],
+  "Hanging Knee Raises": ["Dead hang start","Tuck knees to chest — not just hip flexion","Control the lowering","Progress to straight leg raises"],
+  "Heel Taps": ["Lower back flat on the floor always","Feet in air, knees bent at 90 degrees","Alternate tapping heels to floor","Core braced — don't let back arch"],
+  "High Knees": ["Drive knees up to hip height","Pump arms actively","Stay on balls of feet","Keep torso upright"],
+  "Inchworms": ["Walk hands out to push-up position","Optional push-up at the bottom","Walk feet back to hands","Great full-body warm-up"],
+  "Incline DB Curls": ["Incline position puts bicep on stretch","Increases ROM vs. standing curls","Don't let elbows drift forward","Full extension is key"],
+  "Jump Rope": ["Stay on balls of feet","Keep elbows close to sides, wrists do the work","Small, consistent jumps","Great for conditioning and coordination"],
+  "Jumping Jacks": ["Land softly — absorb through knees","Coordinate arms and legs","Good warm-up or cardio filler"],
+  "Lateral Lunges": ["Step wide, hinge at working leg hip","Knee tracks over toes","Straight leg stays straight","Great for adductors and glute med"],
+  "Leg Raises": ["Lower back stays flat throughout","Slow lowering is where the work happens","Bend knees if too hard","Progress to hanging leg raises"],
+  "Nordic Curls": ["Lower your body as slowly as possible — that IS the work","Use hands to catch yourself at the bottom","Pull back up with hamstrings + push with hands","Extremely effective but very challenging"],
+  "Pallof Press": ["Stand sideways to cable anchor","Press straight out — resist the rotation","Hold 1-2 seconds fully extended","Core braces against the pull — don't let hips twist"],
+  "Planks": ["Squeeze glutes and quads — not just abs","Neutral spine — don't sag or pike","Breathe normally","Forearms parallel, elbows under shoulders"],
+  "Pull-ups / Pulldowns": ["Dead hang start","Drive elbows down and back","Chin clears the bar — full ROM","Control the lowering"],
+  "Rear Delt Flys": ["Hinge forward or use chest-supported position","Lead with elbows — arms slightly bent","Raise to shoulder height only","Squeeze rear delts at top"],
+  "Reverse Hyperextensions": ["Hips at edge of bench","Drive legs up to parallel — don't hyperextend","Squeeze glutes at top","Great for posterior chain without spinal compression"],
+  "Reverse Lunge + Knee Drive": ["Step back into lunge — controlled","Drive front knee up as you return — explosive","Stay tall throughout","Control the lunge down, power the drive up"],
+  "Reverse Lunges": ["Step back with control — vertical shin on front leg","Front knee stays over ankle","Drive through front heel to return","Easier on knees than forward lunges"],
+  "Romanian Deadlifts": ["Hinge at the hips — push your hips back","Micro-bend in knees throughout","Bar stays close to your legs","Feel the hamstring stretch","Squeeze glutes at the top"],
+  "Rowing Machine": ["Drive through legs first — then lean back — then pull","Don't lean too far back","Full extension on the drive","On return: arms first — body — legs","Keep a consistent rhythm"],
+  "Scapular Push-Ups": ["Arms locked out throughout","Let chest sink by pinching shoulder blades","Push back up by spreading shoulder blades","Arms stay completely straight","Excellent for shoulder health"],
+  "Side Planks": ["Keep hips high — don't let them sag","Body forms a straight line","Can add hip dips for extra challenge","Build time gradually"],
+  "Side-Lying Leg Raises": ["Lie on side, body in straight line","Raise top leg to about 45 degrees","Control the return","Keep hips stacked","Add ankle weights to progress"],
+  "Single-Arm DB Rows": ["Brace core hard — don't rotate","Pull elbow up and back","Stretch fully at the bottom","Keep hips square"],
+  "Single-Leg Hip Thrusts": ["Same setup as bilateral — one foot elevated","Drive through heel of working leg","Keep hips level — don't let one side drop","Squeeze glute at top","Reduce weight significantly vs. bilateral"],
+  "Single-Leg RDLs": ["Hinge at the hip — standing leg has slight bend","Keep back flat — don't round","Non-working leg goes back as hinge deepens","Feel hamstring stretch on working leg","Use wall for balance if needed"],
+  "Skull Crushers": ["Lower bar/dumbbells to forehead or just behind it","Elbows stay pointed at ceiling","Don't let elbows flare out","Full extension at top"],
+  "Squats": ["Brace your core before descending","Knees track over toes","Break at hips and knees simultaneously","Keep chest tall","Drive through the whole foot"],
+  "Stability Ball Curls": ["Lie on back, heels on ball","Drive hips up first — then curl ball toward you","Keep hips high throughout","Control the return — extend legs fully"],
+  "Stairmaster": ["Don't lean on the handrails — defeats the purpose","Full step down — don't just tap","Keep upright posture","Vary speed and resistance"],
+  "Step-Ups": ["Drive through heel of elevated foot","Don't push off floor foot — all work from top leg","Keep torso upright","Control the step down"],
+  "Stiff-Leg Deadlifts": ["Similar to RDL but legs straighter","Feel a strong hamstring stretch","Keep bar close to legs","Back stays flat throughout"],
+  "Straight-Arm Pulldowns": ["Arms stay straight throughout","Hinge slightly at hips — lean forward","Drive elbows toward hips in an arc","Feel lats stretching at top","Great lat isolation"],
+  "T-Bar Rows": ["Similar mechanics to barbell rows","Pull to lower chest — elbows close to body","Squeeze shoulder blades at top","Full stretch at the bottom"],
+  "Tricep Dips": ["Keep torso upright for tricep focus","Lower until upper arms parallel to floor","Don't flare elbows","Full lockout at top","Add weight when bodyweight becomes easy"],
+  "Upright Rows": ["Grip just inside shoulder-width","Pull to chin level — lead with elbows","Don't go too heavy — can impinge shoulders","Keep bar close to body"],
+  "Abductor Machine": ["Full ROM — controlled return","Feel glute med — not lower back","15-20 reps work well"],
+  "Band Pull-Aparts": ["Arms straight, band at chest height","Pull band to chest squeezing scapulae","External rotation — hands end facing ceiling","Great for shoulder health"],
+  "Chest-Supported Rows": ["Chest against pad removes lower back","Pull to lower chest","Elbows at 45 degrees — not flared wide","Full stretch at bottom"],
+
+};
+
+function FormCueSheet({ex, T, dark, onClose}) {
+  var cues = FORM_CUES[ex && ex.name] || [];
+  return /*#__PURE__*/React.createElement("div", {
+    style:{position:"fixed",inset:0,zIndex:1005,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(0,0,0,0.65)",backdropFilter:"blur(5px)"},
+    onClick:onClose
+  },
+    /*#__PURE__*/React.createElement("div",{
+      onClick:function(e){e.stopPropagation();},
+      style:{background:T.sheetBg,borderRadius:"24px 24px 0 0",width:"100%",maxWidth:540,border:"1px solid "+T.glassBorder,maxHeight:"75vh",overflowY:"auto",paddingBottom:40}
+    },
+      /*#__PURE__*/React.createElement("div",{style:{padding:"14px 18px 12px",borderBottom:"1px solid "+T.divider,position:"sticky",top:0,background:T.sheetBg,zIndex:1}},
+        /*#__PURE__*/React.createElement("div",{style:{width:36,height:4,background:T.glassBorder,borderRadius:2,margin:"0 auto 12px"}}),
+        /*#__PURE__*/React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+          /*#__PURE__*/React.createElement("div",null,
+            /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:16,fontWeight:800,color:T.text}}, ex && ex.name),
+            /*#__PURE__*/React.createElement("div",{style:{fontSize:9,color:"#fbbf24",fontFamily:"'DM Mono', monospace",letterSpacing:2,marginTop:2}}, "FORM CUES")
+          ),
+          /*#__PURE__*/React.createElement("button",{onClick:onClose,style:{background:"transparent",border:"none",color:T.textSub,fontSize:20,cursor:"pointer",padding:4}}, "\u2715")
+        )
+      ),
+      /*#__PURE__*/React.createElement("div",{style:{padding:"14px 18px"}},
+        cues.length === 0
+          ? /*#__PURE__*/React.createElement("div",{style:{textAlign:"center",padding:"30px 0",color:T.textSub,fontFamily:"'DM Mono', monospace",fontSize:11}}, "No cues available for this exercise yet.")
+          : cues.map(function(cue, i) {
+              return /*#__PURE__*/React.createElement("div",{key:i,style:{display:"flex",gap:12,padding:"10px 0",borderBottom:"1px solid "+T.divider}},
+                /*#__PURE__*/React.createElement("div",{style:{width:20,height:20,borderRadius:"50%",background:"rgba(251,191,36,0.15)",border:"1px solid rgba(251,191,36,0.3)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:10,color:"#fbbf24",fontWeight:700,marginTop:1}}, i+1),
+                /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:11,color:T.text,lineHeight:1.6}}, cue)
+              );
+            })
+      )
+    )
+  );
+}
+
+
+// ─── Barbell Warm-Up Sets ──────────────────────────────────────────────────────
+var COMPOUND_KEYWORDS = ["squat","deadlift","bench press","overhead press","barbell ohp","barbell row","barbell curl","hip thrust","rdl","romanian","front squat","good morning","flat barbell","incline barbell","t-bar row","barbell press"];
+
+function isCompound(name) {
+  if (!name) return false;
+  var n = name.toLowerCase();
+  return COMPOUND_KEYWORDS.some(function(k){ return n.indexOf(k) >= 0; });
+}
+
+function WarmupSets({ex, currentLog, prevLog, logKey, mutate, T, dark, accent}) {
+  var [open, setOpen] = useState(false);
+  var [manualWeight, setManualWeight] = useState("");
+  var [confirmedWeight, setConfirmedWeight] = useState(0);
+  if (!isCompound(ex.name)) return null;
+
+  // 1. Try current session weight
+  var sessionWeight = 0;
+  if (currentLog && currentLog.weights) {
+    var keys = Object.keys(currentLog.weights).filter(function(k){ return k.startsWith(ex.id + "-"); });
+    keys.forEach(function(k){ var w = parseFloat(currentLog.weights[k]); if (!isNaN(w) && w > sessionWeight) sessionWeight = w; });
+  }
+
+  // 2. Fall back to previous session weight
+  var prevWeight = 0;
+  if (!sessionWeight && prevLog && prevLog.weights) {
+    var pkeys = Object.keys(prevLog.weights).filter(function(k){ return k.startsWith(ex.id + "-"); });
+    pkeys.forEach(function(k){ var w = parseFloat(prevLog.weights[k]); if (!isNaN(w) && w > prevWeight) prevWeight = w; });
+  }
+
+  var workingWeight = sessionWeight || prevWeight || confirmedWeight;
+  var needsManual = !workingWeight;
+
+  var setDefs = workingWeight > 0 ? [
+    {pct: 50, reps: 8},
+    {pct: 70, reps: 5},
+    {pct: 85, reps: 2},
+  ] : null;
+
+  var warmupChecked = (currentLog && currentLog.warmupChecked) || {};
+  var doneCount = setDefs ? setDefs.filter(function(s, i){ return !!warmupChecked[ex.id + "-wu-" + i]; }).length : 0;
+
+  function toggleWarmup(i) {
+    mutate(function(l) {
+      var wc = Object.assign({}, l.warmupChecked || {});
+      wc[ex.id + "-wu-" + i] = !wc[ex.id + "-wu-" + i];
+      return Object.assign({}, l, {warmupChecked: wc});
+    });
+  }
+
+  function confirmWeight() {
+    var w = parseFloat(manualWeight);
+    if (!isNaN(w) && w > 0) setConfirmedWeight(w);
+  }
+
+  return /*#__PURE__*/React.createElement("div", {style:{marginTop:4,marginBottom:2}},
+    /*#__PURE__*/React.createElement("button", {
+      onClick:function(e){e.stopPropagation(); setOpen(function(o){return !o;});},
+      style:{background:"transparent",border:"none",cursor:"pointer",padding:"2px 0",display:"flex",alignItems:"center",gap:6}
+    },
+      /*#__PURE__*/React.createElement("div", {style:{fontSize:8,color:"rgba(251,191,36,0.7)",fontFamily:"'DM Mono', monospace",letterSpacing:1}},
+        open ? "- WARM-UP SETS" : "+ WARM-UP SETS"
+      ),
+      setDefs && doneCount > 0 && /*#__PURE__*/React.createElement("div", {
+        style:{fontSize:8,color:"rgba(251,191,36,0.5)",fontFamily:"'DM Mono', monospace"}
+      }, "(" + doneCount + "/" + setDefs.length + ")")
+    ),
+    open && /*#__PURE__*/React.createElement("div", {
+      style:{marginTop:6,padding:"8px 10px",background:"rgba(251,191,36,0.05)",borderRadius:8,border:"1px solid rgba(251,191,36,0.15)"},
+      onClick:function(e){e.stopPropagation();}
+    },
+      needsManual
+        ? /*#__PURE__*/React.createElement("div", null,
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:9,color:"rgba(251,191,36,0.6)",fontFamily:"'DM Mono', monospace",marginBottom:8}},
+              "Enter your planned working weight:"
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8}},
+              /*#__PURE__*/React.createElement("input", {
+                type:"number", inputMode:"decimal",
+                placeholder:"e.g. 135",
+                value:manualWeight,
+                onChange:function(e){setManualWeight(e.target.value);},
+                onClick:function(e){e.stopPropagation();},
+                onTouchStart:function(e){e.stopPropagation();},
+                style:{flex:1,background:T.glass,border:"1px solid rgba(251,191,36,0.3)",borderRadius:8,padding:"8px 10px",color:T.text,fontSize:14,fontFamily:"'DM Mono', monospace",outline:"none",boxSizing:"border-box"}
+              }),
+              /*#__PURE__*/React.createElement("button", {
+                onClick:function(e){e.stopPropagation(); confirmWeight();},
+                style:{padding:"8px 14px",borderRadius:8,background:"rgba(251,191,36,0.2)",border:"1px solid rgba(251,191,36,0.4)",color:"rgba(251,191,36,0.9)",fontFamily:"'DM Mono', monospace",fontSize:11,fontWeight:700,cursor:"pointer",flexShrink:0}
+              }, "Set")
+            )
+          )
+        : /*#__PURE__*/React.createElement("div", null,
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+              /*#__PURE__*/React.createElement("div", {style:{fontSize:8,color:"rgba(251,191,36,0.5)",fontFamily:"'DM Mono', monospace"}},
+                "Based on " + workingWeight + " lbs"
+              ),
+              (confirmedWeight > 0) && /*#__PURE__*/React.createElement("button", {
+                onClick:function(e){e.stopPropagation(); setConfirmedWeight(0); setManualWeight("");},
+                style:{background:"transparent",border:"none",color:"rgba(251,191,36,0.4)",fontSize:9,fontFamily:"'DM Mono', monospace",cursor:"pointer",padding:0}
+              }, "change")
+            ),
+            setDefs.map(function(s, i) {
+              var load = Math.round(workingWeight * s.pct / 100 / 5) * 5;
+              var done = !!warmupChecked[ex.id + "-wu-" + i];
+              return /*#__PURE__*/React.createElement("div", {key:i,
+                style:{display:"flex",alignItems:"center",gap:10,padding:"5px 0",borderBottom:"1px solid rgba(251,191,36,0.1)"}
+              },
+                /*#__PURE__*/React.createElement("div", {style:{flex:1}},
+                  /*#__PURE__*/React.createElement("span", {
+                    style:{fontFamily:"'Outfit', sans-serif",fontSize:12,fontWeight:700,
+                    color:done?"rgba(251,191,36,0.35)":T.text,textDecoration:done?"line-through":"none"}
+                  }, load + " lbs"),
+                  /*#__PURE__*/React.createElement("span", {
+                    style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:T.textSub,marginLeft:8}
+                  }, s.pct + "% \u00D7 " + s.reps)
+                ),
+                /*#__PURE__*/React.createElement("button", {
+                  onClick:function(){ toggleWarmup(i); },
+                  style:{width:24,height:24,borderRadius:"50%",
+                  border:"2px solid "+(done?"rgba(251,191,36,0.6)":"rgba(251,191,36,0.25)"),
+                  background:done?"rgba(251,191,36,0.2)":"transparent",
+                  cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",
+                  color:"rgba(251,191,36,0.8)",fontSize:11,fontWeight:800,flexShrink:0}
+                }, done ? "\u2713" : "")
+              );
+            })
+          )
+    )
+  );
+}
+
+
 function ExerciseSection({
   exercises,
   section,
@@ -7890,12 +8295,15 @@ function ExerciseSection({
   prevLog,
   dark,
   T,
+  mutate,
   onToggleSet,
   onSaveWeight,
   onTogglePR,
   onSwapExercise,
   onOpenPanel,
-  onShowCardioTimer
+  onShowCue,
+  onShowCardioTimer,
+  deload
 }) {
   if (!exercises.length) return null;
   return /*#__PURE__*/React.createElement("div", {
@@ -7976,7 +8384,7 @@ function ExerciseSection({
     !ex.timed && !ex.bodyweight && /*#__PURE__*/React.createElement("div", {
       style: {fontSize:8, color:"rgba(78,205,196,0.6)", fontFamily:"'DM Mono', monospace", letterSpacing:0.5, marginTop:1, whiteSpace:"nowrap"}
     }, "⏱ " + getSuggestedRestLabel(ex.name)),
-    /*#__PURE__*/React.createElement("button", {
+    /*#__PURE__*/    /*#__PURE__*/React.createElement("button", {
       title: "Videos & alternatives",
       style: {
         width: 18,
@@ -7998,6 +8406,10 @@ function ExerciseSection({
         onOpenPanel(ex, accent, section);
       }
     }, "\u2139"),
+    /*#__PURE__*/React.createElement("button", {
+      style:{width:26,height:26,borderRadius:8,border:"1px solid rgba(251,191,36,0.3)",background:"rgba(251,191,36,0.1)",cursor:"pointer",fontSize:12,display:"flex",alignItems:"center",justifyContent:"center",color:"#fbbf24",flexShrink:0,lineHeight:1},
+      onClick: e => { e.stopPropagation(); if (onShowCue) onShowCue(ex); }
+    }, "\uD83D\uDCA1"),
     (function() {
       var r = parseTimerRange(ex.duration || (ex.timed ? ex.reps : null) || (/[smh]$|min/.test(String(ex.reps||"").toLowerCase()) ? ex.reps : null));
       if (!r) return null;
@@ -8015,7 +8427,8 @@ function ExerciseSection({
         borderRadius: 20,
         flexShrink: 0
       }
-    }, ex.sets ? `${ex.sets}×${ex.reps}` : ex.duration)), ex.sets && Array.from({
+    }, ex.sets ? `${ex.sets}×${ex.reps}` : ex.duration)), /*#__PURE__*/React.createElement(WarmupSets, {ex:ex, currentLog:currentLog, prevLog:prevLog, logKey:logKey, mutate:mutate, T:T, dark:dark, accent:accent}),
+    ex.sets && Array.from({
       length: ex.sets
     }).map((_, si) => {
       const k = `${section}-${ei}-${si}`;
@@ -8065,14 +8478,18 @@ function ExerciseSection({
           fontFamily: "'DM Mono', monospace",
           paddingLeft: 4
         }
-      }, "bodyweight") : /*#__PURE__*/React.createElement(WeightInput, {
-        uid: `${logKey}__${k}`,
-        initialValue: saved || prev || "",
-        placeholder: prev || "lbs",
-        accent: accent,
-        textColor: T.text,
-        onSave: v => onSaveWeight(k, v)
-      }), /*#__PURE__*/React.createElement("button", {
+      }, "bodyweight") : (function() {
+        var deloadVal = deload && prev ? String(Math.round(parseFloat(prev) * 0.6 / 5) * 5) : null;
+        var initVal = deload ? (saved || deloadVal || "") : (saved || prev || "");
+        return /*#__PURE__*/React.createElement(WeightInput, {
+          uid: `${logKey}__${k}`,
+          initialValue: initVal,
+          placeholder: deloadVal || prev || "lbs",
+          accent: "#b794f4",
+          textColor: deload ? "#b794f4" : T.text,
+          onSave: v => onSaveWeight(k, v)
+        });
+      })(), /*#__PURE__*/React.createElement("button", {
         onClick: () => onTogglePR(k),
         style: {
           width: 28,
@@ -10947,6 +11364,268 @@ function useSwipeBack(onBack, enabled) {
   }, [enabled]);
 }
 
+
+// Warm-Up / Cool-Down Card
+function WarmupCooldownCard({type, dayId, stretchLogs, onToggleStretch, activeDate, accent, T, dark}) {
+  var [open, setOpen] = useState(false);
+  var data = type === "warmup"
+    ? ((STRETCH_DATA.dynamic || {})[dayId])
+    : ((STRETCH_DATA.static || {})[dayId]);
+  if (!data) return null;
+  var moves = data.moves || [];
+  var doneCount = moves.filter(function(_, i) {
+    return !!((stretchLogs[activeDate] || {})[type + "-" + dayId + "-" + i]);
+  }).length;
+  var pct = moves.length ? Math.round(doneCount / moves.length * 100) : 0;
+  var label = type === "warmup" ? "Warm-Up" : "Cool-Down";
+  var tagLabel = type === "warmup" ? "WARM UP" : "COOL DOWN";
+  var ac = accent || "#4ecdc4";
+
+  return /*#__PURE__*/React.createElement("div", {
+    style:{background:T.glass,backdropFilter:"blur(12px)",border:"1px solid "+(pct>0?ac+"44":T.glassBorder),borderRadius:14,marginBottom:10,overflow:"hidden"}
+  },
+    /*#__PURE__*/React.createElement("button", {
+      onClick:function(){setOpen(function(o){return !o;});},
+      style:{width:"100%",background:"transparent",border:"none",cursor:"pointer",padding:"10px 14px",display:"flex",alignItems:"center",gap:10,textAlign:"left"}
+    },
+      /*#__PURE__*/React.createElement("div", {style:{
+        fontSize:8, fontFamily:"'DM Mono', monospace", fontWeight:700, letterSpacing:2,
+        color:ac, background:ac+"22", padding:"3px 7px", borderRadius:6, flexShrink:0
+      }}, tagLabel),
+      /*#__PURE__*/React.createElement("div", {style:{flex:1}},
+        /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:13,fontWeight:700,color:T.text}}, label),
+        /*#__PURE__*/React.createElement("div", {style:{fontSize:9,color:T.textSub,fontFamily:"'DM Mono', monospace",marginTop:1}}, moves.length + " moves")
+      ),
+      doneCount > 0 && /*#__PURE__*/React.createElement("span", {style:{fontSize:9,color:ac,fontFamily:"'DM Mono', monospace",marginRight:6}},
+        doneCount + "/" + moves.length
+      ),
+      /*#__PURE__*/React.createElement("span", {style:{color:T.textSub,fontSize:10}}, open ? "[-]" : "[+]")
+    ),
+    open && /*#__PURE__*/React.createElement("div", {style:{padding:"0 14px 14px"}},
+      /*#__PURE__*/React.createElement("div", {style:{height:3,background:"rgba(255,255,255,0.06)",borderRadius:2,marginBottom:12,overflow:"hidden"}},
+        /*#__PURE__*/React.createElement("div", {style:{width:pct+"%",height:"100%",background:ac,borderRadius:2,transition:"width 0.3s"}})
+      ),
+      moves.map(function(m, i) {
+        var done = !!((stretchLogs[activeDate] || {})[type + "-" + dayId + "-" + i]);
+        return /*#__PURE__*/React.createElement("div", {key:i,
+          style:{display:"flex",alignItems:"center",gap:8,padding:"7px 0",borderBottom:"1px solid "+T.divider}
+        },
+          /*#__PURE__*/React.createElement("div", {style:{flex:1}},
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:12,fontWeight:600,color:done?ac:T.text,textDecoration:done?"line-through":"none"}}, m.name),
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:9,color:ac,fontFamily:"'DM Mono', monospace",marginTop:1}}, m.reps || m.hold || m.duration || "")
+          ),
+          /*#__PURE__*/React.createElement("button", {
+            onClick:function(){onToggleStretch(activeDate, type + "-" + dayId + "-" + i);},
+            style:{width:26,height:26,borderRadius:"50%",border:"2px solid "+(done?ac:T.glassBorder),background:done?ac:"transparent",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",color:done?"#0d0d14":T.textSub,fontSize:11,fontWeight:800,flexShrink:0}
+          }, done ? "+" : "")
+        );
+      })
+    )
+  );
+}
+
+
+// ─── 1RM Calculator ────────────────────────────────────────────────────────────
+function OneRMSheet({open, onClose, T, dark}) {
+  var [weight, setWeight] = useState("");
+  var [reps, setReps] = useState("");
+  
+  if (!open) return null;
+  
+  var w = parseFloat(weight), r = parseInt(reps);
+  var oneRM = (!isNaN(w) && !isNaN(r) && r > 0 && w > 0) ? Math.round(w * (1 + r / 30)) : null;
+  
+  var percentages = oneRM ? [
+    {pct: 95, label: "95% — 2 reps"},
+    {pct: 90, label: "90% — 4 reps"},
+    {pct: 85, label: "85% — 5 reps"},
+    {pct: 80, label: "80% — 8 reps"},
+    {pct: 75, label: "75% — 10 reps"},
+    {pct: 70, label: "70% — 12 reps"},
+    {pct: 65, label: "65% — 15 reps"},
+  ] : [];
+
+  return /*#__PURE__*/React.createElement("div", {
+    style:{position:"fixed",inset:0,zIndex:1005,display:"flex",alignItems:"flex-end",justifyContent:"center",background:"rgba(0,0,0,0.65)",backdropFilter:"blur(5px)"},
+    onClick: onClose
+  },
+    /*#__PURE__*/React.createElement("div", {
+      onClick: e => e.stopPropagation(),
+      style:{background:T.sheetBg,borderRadius:"24px 24px 0 0",width:"100%",maxWidth:540,border:"1px solid "+T.glassBorder,maxHeight:"80vh",overflowY:"auto",paddingBottom:40}
+    },
+      /*#__PURE__*/React.createElement("div", {style:{padding:"14px 18px 16px",position:"sticky",top:0,background:T.sheetBg,borderBottom:"1px solid "+T.divider}},
+        /*#__PURE__*/React.createElement("div", {style:{width:36,height:4,background:T.glassBorder,borderRadius:2,margin:"0 auto 14px"}}),
+        /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center"}},
+          /*#__PURE__*/React.createElement("div", null,
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:18,fontWeight:800,color:T.text}}, "1RM Calculator"),
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:9,color:T.textSub,fontFamily:"'DM Mono', monospace",marginTop:2}}, "Epley formula")
+          ),
+          /*#__PURE__*/React.createElement("button", {onClick:onClose,style:{background:"transparent",border:"none",color:T.textSub,fontSize:20,cursor:"pointer"}}, "✕")
+        )
+      ),
+      /*#__PURE__*/React.createElement("div", {style:{padding:"20px 18px"}},
+        /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:12,marginBottom:20}},
+          /*#__PURE__*/React.createElement("div", {style:{flex:1}},
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:9,color:T.textSub,fontFamily:"'DM Mono', monospace",letterSpacing:2,marginBottom:6}}, "WEIGHT (lbs)"),
+            /*#__PURE__*/React.createElement("input", {
+              type:"number", inputMode:"decimal", placeholder:"135",
+              value:weight, onChange:e=>setWeight(e.target.value),
+              style:{width:"100%",background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:10,padding:"10px 12px",color:T.text,fontSize:16,fontFamily:"'DM Mono', monospace",outline:"none",boxSizing:"border-box"}
+            })
+          ),
+          /*#__PURE__*/React.createElement("div", {style:{flex:1}},
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:9,color:T.textSub,fontFamily:"'DM Mono', monospace",letterSpacing:2,marginBottom:6}}, "REPS"),
+            /*#__PURE__*/React.createElement("input", {
+              type:"number", inputMode:"numeric", placeholder:"8",
+              value:reps, onChange:e=>setReps(e.target.value),
+              style:{width:"100%",background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:10,padding:"10px 12px",color:T.text,fontSize:16,fontFamily:"'DM Mono', monospace",outline:"none",boxSizing:"border-box"}
+            })
+          )
+        ),
+        oneRM && /*#__PURE__*/React.createElement("div", null,
+          /*#__PURE__*/React.createElement("div", {style:{background:"rgba(78,205,196,0.1)",border:"1px solid rgba(78,205,196,0.3)",borderRadius:14,padding:"16px",textAlign:"center",marginBottom:16}},
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:11,color:"#4ecdc4",fontFamily:"'DM Mono', monospace",letterSpacing:2,marginBottom:4}}, "ESTIMATED 1RM"),
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:48,fontWeight:800,color:"#4ecdc4",fontFamily:"'Outfit', sans-serif",letterSpacing:-1}}, oneRM),
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:11,color:"#4ecdc4",fontFamily:"'DM Mono', monospace"}}, "lbs")
+          ),
+          /*#__PURE__*/React.createElement("div", {style:{fontSize:9,color:T.textSub,fontFamily:"'DM Mono', monospace",letterSpacing:2,marginBottom:10}}, "TRAINING ZONES"),
+          percentages.map(function(p) {
+            var load = Math.round(oneRM * p.pct / 100);
+            return /*#__PURE__*/React.createElement("div", {key:p.pct,
+              style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid "+T.divider}
+            },
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:11,color:T.textSub}}, p.label),
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:15,fontWeight:700,color:T.text}}, load + " lbs")
+            );
+          })
+        ),
+        /*#__PURE__*/React.createElement("div", {style:{background:"rgba(251,191,36,0.08)",border:"1px solid rgba(251,191,36,0.2)",borderRadius:10,padding:"10px 12px",marginBottom:16,display:"flex",gap:10,alignItems:"flex-start"}},
+          /*#__PURE__*/React.createElement("span",{style:{fontSize:14,flexShrink:0}}, "\uD83D\uDCA1"),
+          /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:T.textSub,lineHeight:1.6}},
+            "Use your last heavy working set — the one where the final reps were genuinely hard. Not a warm-up set."
+          )
+        ),
+        !oneRM && /*#__PURE__*/React.createElement("div", {style:{textAlign:"center",padding:"16px 0",color:T.textSub,fontFamily:"'DM Mono', monospace",fontSize:11}},
+          "Enter weight and reps above to calculate"
+        )
+      )
+    )
+  );
+}
+
+
+// ─── Share Card ────────────────────────────────────────────────────────────────
+function ShareCard({workout, currentLog, activeDate, completedDates, streak, T, dark, onClose, isRecovery, isFree, freeSession}) {
+  var totalSets = isRecovery || isFree
+    ? (freeSession ? (freeSession.sets || 0) : Object.values((currentLog&&currentLog.checked)||{}).filter(Boolean).length)
+    : Object.values((currentLog&&currentLog.checked)||{}).filter(Boolean).length;
+
+  var startedAt = currentLog && currentLog.startedAt ? new Date(currentLog.startedAt) : null;
+  var duration = null;
+  if (startedAt) {
+    var mins = Math.round((Date.now() - startedAt.getTime()) / 60000);
+    if (mins > 0 && mins < 300) duration = mins >= 60 ? Math.floor(mins/60)+"h "+(mins%60>0?mins%60+"m":"") : mins+"m";
+  }
+
+  var prs = Object.values((currentLog&&currentLog.increased)||{}).filter(Boolean).length;
+  var dateStr = new Date(activeDate + "T12:00:00").toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"});
+
+  // Days of week completed this week
+  var today = new Date(activeDate + "T12:00:00");
+  var weekDays = ["S","M","T","W","T","F","S"];
+  var dayOfWeek = today.getDay(); // 0=Sun
+  var weekCompleted = weekDays.map(function(d, i) {
+    var diff = i - dayOfWeek;
+    var date = new Date(today);
+    date.setDate(date.getDate() + diff);
+    var key = date.toISOString().slice(0,10);
+    return completedDates && completedDates.has(key);
+  });
+
+  var workoutLabel = isFree ? "Free Workout" : (isRecovery ? "Active Recovery" : (workout && workout.name));
+
+  function shareCard() {
+    if (navigator.share) {
+      navigator.share({
+        title: "Workout Complete",
+        text: workoutLabel + " \u2014 " + totalSets + " sets" + (duration ? ", " + duration : "") + (prs ? ", " + prs + " PRs" : "") + "\n" + streak + " day streak\n" + dateStr + " \u00B7 Workouts App"
+      });
+    }
+  }
+
+  return /*#__PURE__*/React.createElement("div", {
+    style:{position:"fixed",inset:0,zIndex:1010,display:"flex",alignItems:"center",justifyContent:"center",background:"rgba(0,0,0,0.85)",backdropFilter:"blur(8px)",padding:24},
+    onClick:onClose
+  },
+    /*#__PURE__*/React.createElement("div", {
+      onClick:function(e){e.stopPropagation();},
+      style:{display:"flex",flexDirection:"column",alignItems:"center",gap:16,width:"100%",maxWidth:340}
+    },
+      /*#__PURE__*/React.createElement("div", {
+        style:{width:"100%",background:"linear-gradient(145deg,#0d0d1a,#1a1a2e)",borderRadius:24,padding:"28px 24px",border:"1px solid rgba(78,205,196,0.2)",boxShadow:"0 20px 60px rgba(0,0,0,0.6)",textAlign:"center"}
+      },
+        /*#__PURE__*/React.createElement("div", {style:{fontSize:32,marginBottom:10}}, "\u2705"),
+        /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:22,fontWeight:800,color:"#fff",marginBottom:4}}, "Workout Complete"),
+        /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:"rgba(78,205,196,0.6)",letterSpacing:2,marginBottom:20,textTransform:"uppercase"}}, workoutLabel),
+
+        /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"center",gap:20,marginBottom:20}},
+          /*#__PURE__*/React.createElement("div", null,
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:20,fontWeight:700,color:"#4ecdc4"}}, totalSets),
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:8,color:"rgba(255,255,255,0.3)",marginTop:2,letterSpacing:1}}, "SETS")
+          ),
+          duration && /*#__PURE__*/React.createElement("div", {style:{width:1,background:"rgba(255,255,255,0.08)"}}),
+          duration && /*#__PURE__*/React.createElement("div", null,
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:20,fontWeight:700,color:"#4ecdc4"}}, duration),
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:8,color:"rgba(255,255,255,0.3)",marginTop:2,letterSpacing:1}}, "TIME")
+          ),
+          prs > 0 && /*#__PURE__*/React.createElement("div", {style:{width:1,background:"rgba(255,255,255,0.08)"}}),
+          prs > 0 && /*#__PURE__*/React.createElement("div", null,
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:20,fontWeight:700,color:"#fbbf24"}}, prs),
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:8,color:"rgba(255,255,255,0.3)",marginTop:2,letterSpacing:1}}, "PRs")
+          )
+        ),
+
+        /*#__PURE__*/React.createElement("div", {style:{height:1,background:"rgba(255,255,255,0.06)",marginBottom:16}}),
+
+        /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"center",gap:8,marginBottom:12}},
+          weekDays.map(function(d, i) {
+            var isToday = i === dayOfWeek;
+            var done = weekCompleted[i];
+            return /*#__PURE__*/React.createElement("div", {key:i,style:{display:"flex",flexDirection:"column",alignItems:"center",gap:4}},
+              /*#__PURE__*/React.createElement("div", {
+                style:{width:28,height:28,borderRadius:"50%",
+                  background:done?"#4ecdc4":isToday?"rgba(78,205,196,0.15)":"rgba(255,255,255,0.05)",
+                  border:"1px solid "+(done?"#4ecdc4":isToday?"rgba(78,205,196,0.4)":"rgba(255,255,255,0.08)"),
+                  display:"flex",alignItems:"center",justifyContent:"center",
+                  fontFamily:"'DM Mono', monospace",fontSize:9,fontWeight:700,
+                  color:done?"#0d0d14":isToday?"#4ecdc4":"rgba(255,255,255,0.2)"}
+              }, done ? "\u2713" : d)
+            );
+          })
+        ),
+        /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:"rgba(78,205,196,0.4)",letterSpacing:1,marginBottom:16}},
+          "\uD83D\uDD25 " + streak + " day streak"
+        ),
+
+        /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:"rgba(78,205,196,0.2)",letterSpacing:2}},
+          dateStr + " \u00B7 WORKOUTS"
+        )
+      ),
+      /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:12,width:"100%"}},
+        /*#__PURE__*/React.createElement("button", {
+          onClick:shareCard,
+          style:{flex:1,padding:"14px",borderRadius:14,background:"#4ecdc4",border:"none",color:"#0d0d14",fontFamily:"'DM Mono', monospace",fontSize:12,fontWeight:700,cursor:"pointer",letterSpacing:1}
+        }, "Share"),
+        /*#__PURE__*/React.createElement("button", {
+          onClick:onClose,
+          style:{padding:"14px 20px",borderRadius:14,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.5)",fontFamily:"'DM Mono', monospace",fontSize:12,cursor:"pointer"}
+        }, "Close")
+      )
+    )
+  );
+}
+
+
 function WorkoutTracker() {
   const [locked, setLocked] = useState(false);
   const [plans, setPlans] = useState(() => {
@@ -10993,6 +11672,31 @@ function WorkoutTracker() {
   const [stretchLogs, setStretchLogs] = useState(loadStretchLogs);
   const [freeLogs, setFreeLogs] = useState(loadFreeLogs);
   const [freeOpen, setFreeOpen] = useState(false);
+  const [deload, setDeload] = useState(function() {
+    try { return JSON.parse(localStorage.getItem(DELOAD_KEY) || "null"); } catch(e) { return null; }
+  }); // null or {startDate: "YYYY-MM-DD"}
+
+  function toggleDeload() {
+    if (deload) {
+      localStorage.removeItem(DELOAD_KEY);
+      setDeload(null);
+    } else {
+      var d = {startDate: new Date().toISOString().slice(0,10)};
+      localStorage.setItem(DELOAD_KEY, JSON.stringify(d));
+      setDeload(d);
+    }
+  }
+
+  // Check if deload reminder needed (7 days passed)
+  var deloadDaysLeft = null;
+  if (deload && deload.startDate) {
+    var start = new Date(deload.startDate + "T12:00:00");
+    var now = new Date();
+    var daysPassed = Math.floor((now - start) / 86400000);
+    deloadDaysLeft = Math.max(0, 7 - daysPassed);
+  }
+  const [ormOpen, setOrmOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   function onToggleStretch(date, key) {
     setStretchLogs(prev => {
       const day = {
@@ -11713,7 +12417,16 @@ function WorkoutTracker() {
       cursor: "pointer",
       fontFamily: "'DM Mono', monospace"
     }
-  }, "Delete")))), /*#__PURE__*/React.createElement(FreeWorkoutSheet, {
+  }, "Delete")))), /*#__PURE__*/React.createElement(OneRMSheet, {
+    open: ormOpen, onClose: () => setOrmOpen(false),
+    T: T, dark: dark
+  }),
+  shareOpen && /*#__PURE__*/React.createElement(ShareCard, {
+    workout: workout, currentLog: currentLog,
+    activeDate: activeDate, T: T, dark: dark,
+    onClose: () => setShareOpen(false)
+  }),
+  React.createElement(FreeWorkoutSheet, {
     open: freeOpen,
     onClose: () => setFreeOpen(false),
     onSave: fw => {
@@ -11850,6 +12563,8 @@ function WorkoutTracker() {
     onClose: () => { setRestOpen(false); setRestMinimized(true); },
     onDismiss: () => { setRestOpen(false); setRestMinimized(false); setRestStartTime(null); },
     initialTarget: restTarget,
+    startTime: restStartTime,
+    onTargetChange: (t) => setRestTarget(t),
     accent: workout.tagColor,
     T: T
   }),
@@ -11860,7 +12575,12 @@ function WorkoutTracker() {
     onDismiss: () => { setCardioTimerEx(null); setCardioTimerOpen(false); setCardioStartTime(null); },
     onStart: (t) => setCardioStartTime(t),
     ex: cardioTimerEx, accent: workout.tagColor, T: T, dark: dark
-  }), panelEx && /*#__PURE__*/React.createElement(ExercisePanel, {
+  }),
+  formCueEx && /*#__PURE__*/React.createElement(FormCueSheet, {
+    ex: formCueEx, T: T, dark: dark,
+    onClose: () => setFormCueEx(null)
+  }),
+  panelEx && /*#__PURE__*/React.createElement(ExercisePanel, {
     ex: panelEx.ex,
     accent: panelEx.accent,
     T: T,
@@ -11926,6 +12646,24 @@ function WorkoutTracker() {
     label: "➕  Free Workout",
     a: () => {
       setFreeOpen(true);
+      setMenuOpen(false);
+    }
+  }, {
+    label: deload ? "💪  End Deload Week" : "😴  Start Deload Week",
+    a: () => {
+      toggleDeload();
+      setMenuOpen(false);
+    }
+  }, {
+    label: "⚡  1RM Calculator",
+    a: () => {
+      setOrmOpen(true);
+      setMenuOpen(false);
+    }
+  }, {
+    label: "📤  Share Workout",
+    a: () => {
+      setShareOpen(true);
       setMenuOpen(false);
     }
   }, {
@@ -12275,8 +13013,39 @@ function WorkoutTracker() {
   }, workout.tag, " \xB7 Day ", workout.day),
     /*#__PURE__*/React.createElement("div",{style:{fontSize:9,color:T.textSub,fontFamily:"'DM Mono', monospace",marginTop:2}},
       (function(){
-        var sets=([...(workout.exercises||[]),...(workout.core||[])]).reduce(function(a,e){return a+(e.sets||0);},0);
-        var mins=Math.round(sets*2.5); if(mins<5)return null;
+        var allEx = [...(workout.exercises||[]),...(workout.core||[])];
+        if (!allEx.length) return null;
+        var mins = 0;
+
+        // Warm-up card
+        if (STRETCH_DATA.dynamic && STRETCH_DATA.dynamic[workout.id]) mins += 5;
+
+        // Per exercise: barbell warm-up + working sets + rest
+        allEx.forEach(function(e) {
+          var sets = e.sets || 0;
+          if (!sets) return;
+          var compound = /squat|deadlift|bench|press|row|ohp|rdl|hip thrust|lunge|clean|pull-up|pullup|chin/i.test(e.name || "");
+          var bw = e.bodyweight || e.timed;
+          // Barbell warm-up sets for compounds
+          if (compound) mins += 3;
+          // Each working set: ~30s effort + rest
+          var restPerSet = compound ? 3 : (bw ? 1 : 1.5);
+          mins += sets * (0.5 + restPerSet);
+        });
+
+        // Optional cardio midpoint
+        (workout.cardio||[]).forEach(function(c){
+          if (c.duration) {
+            var r = parseTimerRange(c.duration);
+            if (r) mins += ((r.low + r.high) / 2) / 60;
+          }
+        });
+
+        // Cool-down card
+        if (STRETCH_DATA.static && STRETCH_DATA.static[workout.id]) mins += 5;
+
+        mins = Math.round(mins);
+        if (mins < 5) return null;
         return "~"+(mins>=60?Math.floor(mins/60)+"h "+(mins%60>0?mins%60+"m":""):mins+"m")+" estimated";
       })()
     ),
@@ -12471,7 +13240,21 @@ function WorkoutTracker() {
       cursor: "pointer",
       outline: "none"
     }
-  }), prevLog && !workout.isRecovery && /*#__PURE__*/React.createElement("div", {
+  }),
+  /*#__PURE__*/React.createElement("button", {
+    onClick: function() {
+      var d = new Date(activeDate + "T12:00:00");
+      d.setDate(d.getDate() - 1);
+      setActiveDate(d.toISOString().slice(0, 10));
+    },
+    style: {
+      padding: "6px 10px", borderRadius: 10, background: T.glass,
+      border: "1px solid " + T.glassBorder, color: T.textSub,
+      fontSize: 10, fontFamily: "'DM Mono', monospace",
+      cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0
+    }
+  }, "← Yesterday"),
+  prevLog && !workout.isRecovery && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 8,
       color: workout.tagColor,
@@ -12526,11 +13309,39 @@ function WorkoutTracker() {
       cursor: "pointer",
       flexShrink: 0
     }
-  }, "Log Day \u2713")), workout.isRecovery ? /*#__PURE__*/React.createElement(RecoveryView, {
-    T: T,
-    dark: dark
-  }) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(ExerciseSection, {
+  }, "Log Day \u2713")), workout.isRecovery ? /*#__PURE__*/React.createElement(React.Fragment, null,
+    /*#__PURE__*/React.createElement(RecoveryView, {T:T, dark:dark}),
+    /*#__PURE__*/React.createElement("div", {style:{padding:"16px 0 0"}},
+      /*#__PURE__*/React.createElement("button", {
+        onClick:()=>setShareOpen(true),
+        style:{width:"100%",padding:"14px",borderRadius:14,background:"linear-gradient(135deg,rgba(78,205,196,0.15),rgba(78,205,196,0.05))",border:"1px solid rgba(78,205,196,0.3)",color:"#4ecdc4",fontFamily:"'DM Mono', monospace",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}
+      }, "✅  Finish Recovery Day")
+    )
+  ) : /*#__PURE__*/React.createElement(React.Fragment, null,
+  deload && /*#__PURE__*/React.createElement("div", {
+    style:{background:"rgba(183,148,244,0.12)",border:"1px solid rgba(183,148,244,0.35)",borderRadius:12,padding:"10px 14px",marginBottom:10,display:"flex",alignItems:"center",gap:10}
+  },
+    /*#__PURE__*/React.createElement("div", {style:{flex:1}},
+      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:13,fontWeight:700,color:"#b794f4"}}, "Deload Week Active"),
+      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:"rgba(183,148,244,0.7)",marginTop:2}},
+        deloadDaysLeft > 0 ? deloadDaysLeft + " days remaining — weights set to 60%" : "Time to end your deload and get back to full intensity!"
+      )
+    ),
+    deloadDaysLeft === 0 && /*#__PURE__*/React.createElement("button", {
+      onClick: toggleDeload,
+      style:{padding:"6px 12px",borderRadius:8,background:"rgba(183,148,244,0.2)",border:"1px solid rgba(183,148,244,0.4)",color:"#b794f4",fontFamily:"'DM Mono', monospace",fontSize:10,fontWeight:700,cursor:"pointer"}
+    }, "End Deload")
+  ),
+  /*#__PURE__*/React.createElement(WarmupCooldownCard, {
+    type:"warmup", dayId:workout.id,
+    stretchLogs:stretchLogs, onToggleStretch:onToggleStretch,
+    activeDate:activeDate, accent:workout.tagColor, T:T, dark:dark
+  }),
+  /*#__PURE__*/React.createElement(ExerciseSection, {
     exercises: workout.exercises,
+    mutate: mutate,
+    deload: deload,
+    onShowCue: ex => setFormCueEx(ex),
     onShowCardioTimer: ex => { setCardioTimerEx(ex); setCardioTimerOpen(true); },
     section: "ex",
     label: "Exercises",
@@ -12547,6 +13358,9 @@ function WorkoutTracker() {
     onOpenPanel: onOpenPanel
   }), /*#__PURE__*/React.createElement(ExerciseSection, {
     exercises: workout.core,
+    mutate: mutate,
+    deload: deload,
+    onShowCue: ex => setFormCueEx(ex),
     onShowCardioTimer: ex => { setCardioTimerEx(ex); setCardioTimerOpen(true); },
     section: "core",
     label: "Core",
@@ -12625,14 +13439,25 @@ function WorkoutTracker() {
       outline: "none",
       lineHeight: 1.6
     }
-  })))), restMinimized && restStartTime && /*#__PURE__*/React.createElement("button", {
+  })),
+  /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShareOpen(true),
+    style:{width:"100%",padding:"14px",borderRadius:14,background:"linear-gradient(135deg,rgba(78,205,196,0.15),rgba(78,205,196,0.05))",border:"1px solid rgba(78,205,196,0.3)",color:"#4ecdc4",fontFamily:"'DM Mono', monospace",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1,marginBottom:10}
+  }, "✅  Finish Workout"),
+  /*#__PURE__*/React.createElement(WarmupCooldownCard, {
+    type:"cooldown", dayId:workout.id,
+    stretchLogs:stretchLogs, onToggleStretch:onToggleStretch,
+    activeDate:activeDate, accent:"#4ecdc4", T:T, dark:dark
+  }))), restMinimized && restStartTime && /*#__PURE__*/React.createElement("button", {
     onClick: () => { setRestMinimized(false); setRestOpen(true); },
     style: {position:"fixed",bottom:170,right:16,zIndex:90,padding:"8px 14px",borderRadius:24,background:"#4ecdc4",border:"none",cursor:"pointer",boxShadow:"0 4px 16px rgba(78,205,196,0.4)",display:"flex",alignItems:"center",gap:8}
   },
     /*#__PURE__*/React.createElement("span",{style:{fontSize:14}}, "⏱"),
     /*#__PURE__*/React.createElement("span",{style:{fontFamily:"'DM Mono', monospace",fontSize:12,fontWeight:700,color:"#0d0d14"}},
       (function(){
-        var remaining = Math.max(0, restTarget - Math.floor((Date.now() - restStartTime)/1000));
+        if (!restStartTime) return "";
+        var elapsed = Math.floor((Date.now() - restStartTime)/1000);
+        var remaining = Math.max(0, restTarget - elapsed);
         var m = Math.floor(remaining/60), s = remaining%60;
         return m>0 ? m+":"+(s<10?"0":"")+s : s+"s";
       })()
