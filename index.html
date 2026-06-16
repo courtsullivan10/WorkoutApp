@@ -6873,9 +6873,11 @@ function RestTimerSheet({
       ivl.current = setInterval(() => {
         var e = Math.floor((Date.now() - startTime) / 1000);
         if (e >= target) {
+          clearInterval(ivl.current);
           setElapsed(target);
           setRunning(false);
-          playBeep("rest_done");
+          // Small delay ensures audio context is ready before beep
+          setTimeout(function(){ playBeep("rest_done"); }, 50);
         } else {
           setElapsed(e);
         }
@@ -7891,7 +7893,10 @@ function CardioTimerSheet({open, onClose, onDismiss, onStart, ex, accent, T, dar
           /*#__PURE__*/React.createElement("div",{style:{fontSize:9,color:ac,fontFamily:"'DM Mono', monospace",marginTop:3}},
             range.isRange ? fmt(range.low)+" - "+fmt(range.high)+" target" : fmt(range.low)+" target")
         ),
-        phase!=="idle" && /*#__PURE__*/React.createElement("button",{onClick:onClose,style:{background:"transparent",border:"1px solid "+T.glassBorder,borderRadius:8,color:T.textSub,fontSize:11,cursor:"pointer",padding:"4px 10px",fontFamily:"'DM Mono', monospace"}}, "minimize")
+        /*#__PURE__*/React.createElement("div",{style:{display:"flex",gap:6}},
+        phase!=="idle" && /*#__PURE__*/React.createElement("button",{onClick:onClose,style:{background:"transparent",border:"1px solid "+T.glassBorder,borderRadius:8,color:T.textSub,fontSize:11,cursor:"pointer",padding:"4px 10px",fontFamily:"'DM Mono', monospace"}}, "minimize"),
+        /*#__PURE__*/React.createElement("button",{onClick:onDismiss,style:{background:"transparent",border:"1px solid rgba(255,80,80,0.3)",borderRadius:8,color:"#ff5050",fontSize:11,cursor:"pointer",padding:"4px 10px",fontFamily:"'DM Mono', monospace"}}, "close")
+      )
       ),
       /*#__PURE__*/React.createElement("div",{style:{textAlign:"center",marginBottom:16}},
         /*#__PURE__*/React.createElement("div",{style:{fontSize:56,fontWeight:800,fontFamily:"'DM Mono', monospace",color:phase==="done"?"#4ecdc4":phase==="at-low"?"#fbbf24":ac,letterSpacing:-2,lineHeight:1}}, timeStr),
@@ -11515,14 +11520,17 @@ function OneRMSheet({open, onClose, T, dark}) {
 
 
 // ─── Share Card ────────────────────────────────────────────────────────────────
-function ShareCard({workout, currentLog, activeDate, completedDates, streak, T, dark, onClose, isRecovery, isFree, freeSession}) {
+function ShareCard({workout, currentLog, activeDate, completedDates, streak, timerElapsed, T, dark, onClose, isRecovery, isFree, freeSession}) {
   var totalSets = isRecovery || isFree
     ? (freeSession ? (freeSession.sets || 0) : Object.values((currentLog&&currentLog.checked)||{}).filter(Boolean).length)
     : Object.values((currentLog&&currentLog.checked)||{}).filter(Boolean).length;
 
-  var startedAt = currentLog && currentLog.startedAt ? new Date(currentLog.startedAt) : null;
   var duration = null;
-  if (startedAt) {
+  if (timerElapsed && timerElapsed > 0) {
+    var mins = Math.floor(timerElapsed / 60);
+    if (mins > 0) duration = mins >= 60 ? Math.floor(mins/60)+"h "+(mins%60>0?mins%60+"m":"") : mins+"m";
+  } else if (currentLog && currentLog.startedAt) {
+    var startedAt = new Date(currentLog.startedAt);
     var mins = Math.round((Date.now() - startedAt.getTime()) / 60000);
     if (mins > 0 && mins < 300) duration = mins >= 60 ? Math.floor(mins/60)+"h "+(mins%60>0?mins%60+"m":"") : mins+"m";
   }
@@ -11604,7 +11612,7 @@ function ShareCard({workout, currentLog, activeDate, completedDates, streak, T, 
           })
         ),
         /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:"rgba(78,205,196,0.4)",letterSpacing:1,marginBottom:16}},
-          "\uD83D\uDD25 " + streak + " day streak"
+          "\uD83D\uDD25 " + (streak || 0) + " day streak"
         ),
 
         /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:"rgba(78,205,196,0.2)",letterSpacing:2}},
@@ -11700,6 +11708,9 @@ function WorkoutTracker() {
   }
   const [ormOpen, setOrmOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [workoutEndTime, setWorkoutEndTime] = useState(null);
+  const completedDates = useMemo(() => getCompletedDates(logs, freeLogs), [logs, freeLogs]);
+  const streak = useMemo(() => calcStreak(completedDates), [completedDates]);
   function onToggleStretch(date, key) {
     setStretchLogs(prev => {
       const day = {
@@ -11761,6 +11772,7 @@ function WorkoutTracker() {
         setRestMinimized(false);
         setRestStartTime(null);
         clearInterval(iv);
+        setTimeout(function(){ playBeep("rest_done"); }, 50);
       }
     }, 1000);
     return function(){ clearInterval(iv); };
@@ -12424,9 +12436,12 @@ function WorkoutTracker() {
     open: ormOpen, onClose: () => setOrmOpen(false),
     T: T, dark: dark
   }),
-  shareOpen && /*#__PURE__*/React.createElement(ShareCard, {
+  shareOpen && /*#__PURE__*/shareOpen && workout && /*#__PURE__*/React.createElement(ShareCard, {
     workout: workout, currentLog: currentLog,
-    activeDate: activeDate, T: T, dark: dark,
+    activeDate: activeDate, completedDates: completedDates, streak: streak,
+    timerElapsed: timerElapsed,
+    T: T, dark: dark,
+    isRecovery: !!(workout && workout.isRecovery),
     onClose: () => setShareOpen(false)
   }),
   React.createElement(FreeWorkoutSheet, {
@@ -13316,7 +13331,7 @@ function WorkoutTracker() {
     /*#__PURE__*/React.createElement(RecoveryView, {T:T, dark:dark}),
     /*#__PURE__*/React.createElement("div", {style:{padding:"16px 0 0"}},
       /*#__PURE__*/React.createElement("button", {
-        onClick:()=>setShareOpen(true),
+        onClick:()=>{setWorkoutEndTime(Date.now());setShareOpen(true);},
         style:{width:"100%",padding:"14px",borderRadius:14,background:"linear-gradient(135deg,rgba(78,205,196,0.15),rgba(78,205,196,0.05))",border:"1px solid rgba(78,205,196,0.3)",color:"#4ecdc4",fontFamily:"'DM Mono', monospace",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}
       }, "✅  Finish Recovery Day")
     )
@@ -13444,7 +13459,7 @@ function WorkoutTracker() {
     }
   })),
   /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShareOpen(true),
+    onClick: () => { setWorkoutEndTime(Date.now()); setShareOpen(true); },
     style:{width:"100%",padding:"14px",borderRadius:14,background:"linear-gradient(135deg,rgba(78,205,196,0.15),rgba(78,205,196,0.05))",border:"1px solid rgba(78,205,196,0.3)",color:"#4ecdc4",fontFamily:"'DM Mono', monospace",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1,marginBottom:10}
   }, "✅  Finish Workout"),
   /*#__PURE__*/React.createElement(WarmupCooldownCard, {
