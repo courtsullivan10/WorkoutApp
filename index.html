@@ -2539,28 +2539,28 @@ const RECOVERY_PROGRAMS = {
     }]
   },
   yoga: {
-    title: "Yoga",
-    emoji: "🙏",
+    title: "Flexibility",
+    emoji: "🤸",
     color: "#ffd93d",
-    description: "Combines mobility, breath work, and mindfulness — the perfect active recovery tool.",
+    description: "Stretch-based recovery focusing on mobility, flexibility, and muscle release — no spiritual elements.",
     programs: [{
-      name: "Yin Yoga (passive holds)",
-      duration: "30–40 min",
-      intensity: "Very low — purely passive stretching",
-      steps: ["Butterfly: 3 min — inner thigh and groin", "Sleeping Swan (Pigeon): 3 min each side — hips", "Half Saddle: 2 min each side — quad and hip flexor", "Caterpillar (seated fold): 3 min — full spine", "Twisted Roots (lying twist): 2 min each side — lower back", "Savasana: 5 min — full body rest"],
-      notes: "Yin holds should feel uncomfortable but never painful. Breathe into every pose."
-    }, {
-      name: "Vinyasa Flow (active recovery)",
+      name: "Full Body Stretch (30 min)",
       duration: "30 min",
-      intensity: "Low–Medium — flowing movement",
-      steps: ["Sun Salutation A x3: warms the whole body", "Warrior I: 5 breaths each side", "Warrior II: 5 breaths each side", "Triangle Pose: 5 breaths each side", "Low Lunge: 5 breaths each side", "Pigeon Pose: 10 breaths each side", "Bridge Pose: 5 breaths x3", "Supine Twist: 5 breaths each side", "Savasana: 5 min"],
-      notes: "Search 'Yoga with Adriene active recovery' on YouTube for a guided version."
+      intensity: "Very low — passive stretching",
+      steps: ["Hip Flexor Stretch: 60s each side — kneel, push hips forward", "Hamstring Stretch: 60s each side — seated, reach toward toes", "Pigeon Hip Stretch: 60s each side — best glute release", "Chest & Shoulder Opener: 45s — doorway stretch", "Lat Stretch: 45s each side — arm overhead against wall", "Lying Spinal Twist: 60s each side — knee across body", "Quad Stretch: 45s each side — standing, pull ankle behind you", "Calf Stretch: 45s each side — foot against wall"],
+      notes: "Hold each stretch without bouncing. Breathe deeply and relax into each position."
     }, {
-      name: "Yoga for Athletes",
+      name: "Lower Body Focus (25 min)",
       duration: "25 min",
       intensity: "Low — targeted release",
-      steps: ["Downward Dog: 10 breaths — full posterior chain", "Standing Forward Fold: 10 breaths — hamstrings", "Figure Four Wall Stretch: 60 sec each — glutes", "Reclined Butterfly: 2 min — inner thigh", "Legs up the Wall: 3 min — circulation recovery", "Supine Twist: 60 sec each side — spine", "Savasana: 5 min"],
-      notes: "Legs up the wall for 3+ minutes is one of the best post-training recovery tools available."
+      steps: ["Butterfly Stretch: 90s — soles together, lean forward", "90/90 Hip Stretch: 60s each side — best hip opener", "Frog Stretch: 90s — knees wide, hips to floor", "Kneeling Hip Flexor: 60s each side — counters sitting", "Standing Forward Fold: 60s — hinge from hips", "Lying Hamstring Pull: 60s each side — on back, pull leg up", "Seated Calf Stretch: 45s each side — foot flexed against wall"],
+      notes: "Great after leg day. Focus on breathing into tight spots."
+    }, {
+      name: "Upper Body & Spine (20 min)",
+      duration: "20 min",
+      intensity: "Low — targeted release",
+      steps: ["Doorway Chest Stretch: 45s each — arm at 90deg, lean in", "Cross-Body Shoulder: 30s each — pull arm across chest", "Thread the Needle: 45s each — rotate thoracic spine", "Lat Stretch: 45s each — one arm overhead against wall", "Neck Side Stretch: 30s each — ear to shoulder", "Cat-Cow: 1 min — full spinal mobility, slow movement", "Overhead Tricep Stretch: 30s each — reach behind head"],
+      notes: "Great after upper body days or desk work."
     }]
   },
   mobility: {
@@ -3169,6 +3169,12 @@ function RecoveryView({
 }) {
   const [selectedActivity, setSelectedActivity] = useState(null);
   const [selectedProgram, setSelectedProgram] = useState(null);
+  const [recoveryChecked, setRecoveryChecked] = useState({});
+  function toggleRecoveryStep(key) {
+    setRecoveryChecked(function(prev) {
+      return Object.assign({}, prev, {[key]: !prev[key]});
+    });
+  }
 
   useSwipeBack(function() {
     if (selectedProgram) setSelectedProgram(null);
@@ -3317,7 +3323,18 @@ function RecoveryView({
           flexShrink: 0,
           alignSelf: "center"
         }
-      }, "\u25B6\uFE0F"));
+      }, "\u25B6\uFE0F"),
+      /*#__PURE__*/React.createElement("button", {
+        onClick: function() { toggleRecoveryStep(act.label + "-" + prog.name + "-" + i); },
+        style: {
+          width: 26, height: 26, borderRadius: "50%", flexShrink: 0, alignSelf: "center",
+          border: "2px solid " + (recoveryChecked[act.label + "-" + prog.name + "-" + i] ? act.color : "rgba(255,255,255,0.15)"),
+          background: recoveryChecked[act.label + "-" + prog.name + "-" + i] ? act.color : "transparent",
+          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
+          color: recoveryChecked[act.label + "-" + prog.name + "-" + i] ? "#0d0d14" : "rgba(255,255,255,0.2)",
+          fontSize: 11, fontWeight: 800
+        }
+      }, recoveryChecked[act.label + "-" + prog.name + "-" + i] ? "\u2713" : ""));
     }), /*#__PURE__*/React.createElement("div", {
       style: {
         background: `${act.color}10`,
@@ -9916,13 +9933,19 @@ function HistoryView({
         flexShrink: 0,
         marginLeft: 8
       }
-    }, log.duration && /*#__PURE__*/React.createElement("span", {
+    }, (log.startedAt || log.duration) && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 9,
         color: T.textSub,
         fontFamily: "'DM Mono', monospace"
       }
-    }, "\u23F1 ", fmtDur(log.duration)), prCount > 0 && /*#__PURE__*/React.createElement("span", {
+    }, "\u23F1 ", (function(){
+      if (log.startedAt && log.finishedAt) {
+        var secs = Math.round((new Date(log.finishedAt) - new Date(log.startedAt)) / 1000);
+        return fmtDur(secs);
+      }
+      return log.duration ? fmtDur(log.duration) : "";
+    })()), prCount > 0 && /*#__PURE__*/React.createElement("span", {
       style: {
         fontSize: 9,
         color: w.tagColor,
@@ -11571,8 +11594,11 @@ function ShareCard({workout, currentLog, activeDate, completedDates, streak, tim
     if (m === 0) return sec + "s";
     return m >= 60 ? Math.floor(m/60)+"h "+(m%60>0?m%60+"m":"") : m+"m"+(sec>0?" "+sec+"s":"");
   }
-  // Read frozen duration saved to log when Finish was tapped
-  if (currentLog && currentLog.duration && currentLog.duration > 0) {
+  // Use wall clock: finishedAt - startedAt (matches history)
+  if (currentLog && currentLog.startedAt && currentLog.finishedAt) {
+    var wallSecs = Math.round((new Date(currentLog.finishedAt) - new Date(currentLog.startedAt)) / 1000);
+    if (wallSecs > 0) duration = fmtSecs(wallSecs);
+  } else if (currentLog && currentLog.duration && currentLog.duration > 0) {
     duration = fmtSecs(currentLog.duration);
   }
 
@@ -11774,6 +11800,8 @@ function WorkoutTracker() {
   const timerRef = useRef(null);
   function startWorkout() {
     const now = Date.now();
+    localStorage.setItem("wt-timer-start", String(now));
+    localStorage.setItem("wt-timer-key", logKey);
     setTimerStart(now);
     setTimerElapsed(0);
     setTimerState("running");
@@ -11796,6 +11824,7 @@ function WorkoutTracker() {
     setTimerState("idle");
     setTimerElapsed(0);
     setTimerStart(null);
+    localStorage.removeItem("wt-timer-start");
   }
   useEffect(function() {
     if (!cardioTimerEx || cardioTimerOpen) return;
@@ -11832,7 +11861,22 @@ function WorkoutTracker() {
     return () => clearInterval(timerRef.current);
   }, [timerState, timerStart]);
   useEffect(() => {
-    resetTimer();
+    var saved = localStorage.getItem("wt-timer-start");
+    var savedKey = localStorage.getItem("wt-timer-key");
+    var currentLogKey = logKey;
+    var log = logs[currentLogKey] || {};
+    var isInProgress = saved && savedKey === currentLogKey && !log.finishedAt && log.startedAt;
+    if (isInProgress) {
+      var ts = parseInt(saved, 10);
+      setTimerStart(ts);
+      setTimerElapsed(Math.floor((Date.now() - ts) / 1000));
+      setTimerState("running");
+      workoutStartedRef.current = true;
+    } else {
+      localStorage.removeItem("wt-timer-start");
+      localStorage.removeItem("wt-timer-key");
+      resetTimer();
+    }
   }, [selDay, activeDate]);
   const T = dark ? {
     bg: "#0d0d14",
@@ -13227,7 +13271,12 @@ function WorkoutTracker() {
       color: timerColor,
       letterSpacing: 1
     }
-  }, fmtDur(timerElapsed)), currentLog.duration && timerState === "idle" && /*#__PURE__*/React.createElement("div", {
+  }, (function(){
+      if ((timerState === "done" || timerState === "idle") && currentLog.startedAt && currentLog.finishedAt) {
+        return fmtDur(Math.round((new Date(currentLog.finishedAt) - new Date(currentLog.startedAt)) / 1000));
+      }
+      return fmtDur(timerElapsed);
+    })()), currentLog.duration && timerState === "idle" && /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 9,
       color: T.textSub,
@@ -13379,6 +13428,8 @@ function WorkoutTracker() {
       var elapsed = timerStart
         ? Math.floor((now - timerStart) / 1000)
         : (currentLog.startedAt ? Math.floor((now - new Date(currentLog.startedAt).getTime()) / 1000) : 0);
+      localStorage.removeItem("wt-timer-start");
+      localStorage.removeItem("wt-timer-key");
       mutate(function(l){
         return Object.assign({},l,{duration:elapsed,finishedAt:new Date().toISOString()});
       });
