@@ -5043,6 +5043,105 @@ const HOME_WORKOUTS = [
       {name:"Jump Rope", sets:3, reps:"60s"},
       {name:"Plank", sets:3, reps:"45s", bodyweight:true}
     ]
+  },
+  {
+    id: "hw14", name: "Beginner Full Body", category: "Full Body",
+    equipment: [], duration: "25 min", difficulty: "Beginner",
+    exercises: [
+      {name:"Bodyweight Squats", sets:3, reps:"10", bodyweight:true},
+      {name:"Push-Ups", sets:3, reps:"8"},
+      {name:"Glute Bridges (unweighted)", sets:3, reps:"12", bodyweight:true},
+      {name:"Heel Taps", sets:3, reps:"20", bodyweight:true},
+      {name:"Plank", sets:3, reps:"20s", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw15", name: "Glute Focus", category: "Lower Body",
+    equipment: ["bands"], duration: "35 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Frog Pumps", sets:3, reps:"25", bodyweight:true},
+      {name:"Clamshells", sets:3, reps:"20"},
+      {name:"Banded Hip Thrusts", sets:4, reps:"15"},
+      {name:"Donkey Kicks", sets:3, reps:"15", bodyweight:true},
+      {name:"Fire Hydrants", sets:3, reps:"15", bodyweight:true},
+      {name:"Cable Hip Abduction", sets:3, reps:"20"},
+      {name:"Glute Bridges (unweighted)", sets:3, reps:"20", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw16", name: "Upper Body Push", category: "Upper Body",
+    equipment: ["bands"], duration: "35 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Push-Ups", sets:4, reps:"12"},
+      {name:"Pike Push-Ups", sets:3, reps:"10"},
+      {name:"Diamond Push-Ups", sets:3, reps:"8"},
+      {name:"Band Shoulder Press", sets:3, reps:"12"},
+      {name:"Tricep Pushdowns", sets:3, reps:"15"},
+      {name:"Plank", sets:3, reps:"45s", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw17", name: "Upper Body Pull", category: "Upper Body",
+    equipment: ["bands"], duration: "35 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Band Pull-Aparts", sets:4, reps:"20"},
+      {name:"Lat Pulldowns", sets:4, reps:"12"},
+      {name:"Seated Cable Rows", sets:4, reps:"12"},
+      {name:"Face Pulls", sets:3, reps:"20"},
+      {name:"Hammer Curls", sets:3, reps:"12"},
+      {name:"Dead Bug", sets:3, reps:"10", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw18", name: "HIIT Cardio Blast", category: "Cardio",
+    equipment: ["jump rope"], duration: "20 min", difficulty: "Advanced",
+    exercises: [
+      {name:"Jump Rope", sets:5, reps:"90s"},
+      {name:"Burpees", sets:5, reps:"10", bodyweight:true},
+      {name:"High Knees", sets:5, reps:"40s", bodyweight:true},
+      {name:"Jump Rope", sets:3, reps:"60s"},
+      {name:"Mountain Climbers", sets:3, reps:"40s", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw19", name: "Abs & Core Stability", category: "Core",
+    equipment: ["sliders"], duration: "25 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Slider Plank Body Saw", sets:3, reps:"12"},
+      {name:"Dead Bug", sets:3, reps:"10", bodyweight:true},
+      {name:"Slider Pike", sets:3, reps:"10"},
+      {name:"Hollow Hold", sets:3, reps:"30s", bodyweight:true},
+      {name:"Side Planks", sets:3, reps:"30s", bodyweight:true},
+      {name:"Slider Knee Tucks", sets:3, reps:"12"}
+    ]
+  },
+  {
+    id: "hw20", name: "Active Recovery Flow", category: "Recovery",
+    equipment: [], duration: "20 min", difficulty: "Beginner",
+    exercises: [
+      {name:"Inchworms", sets:3, reps:"8", bodyweight:true},
+      {name:"Hip Circles", sets:2, reps:"10", bodyweight:true},
+      {name:"Bodyweight Squats", sets:2, reps:"10", bodyweight:true},
+      {name:"Scapular Push-Ups", sets:2, reps:"12"},
+      {name:"Glute Bridges (unweighted)", sets:2, reps:"15", bodyweight:true},
+      {name:"Dead Bug", sets:2, reps:"8", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw21", name: "Push Pull Legs", category: "Full Body",
+    equipment: ["bands"], duration: "55 min", difficulty: "Advanced",
+    exercises: [
+      {name:"Push-Ups", sets:4, reps:"12"},
+      {name:"Band Pull-Aparts", sets:4, reps:"20"},
+      {name:"Banded Hip Thrusts", sets:4, reps:"15"},
+      {name:"Pike Push-Ups", sets:3, reps:"10"},
+      {name:"Lat Pulldowns", sets:3, reps:"12"},
+      {name:"Reverse Lunges", sets:3, reps:"12", bodyweight:true},
+      {name:"Tricep Dips", sets:3, reps:"12", bodyweight:true},
+      {name:"Seated Cable Rows", sets:3, reps:"12"},
+      {name:"Clamshells", sets:3, reps:"20"},
+      {name:"Plank", sets:3, reps:"45s", bodyweight:true}
+    ]
   }
 ];
 
@@ -5056,10 +5155,14 @@ function HomeWorkoutsView({T, dark, onStartWorkout}) {
     {id:"bands", label:"Bands"},
     {id:"sliders", label:"Sliders"},
     {id:"jump rope", label:"Jump Rope"},
+    {id:"recovery", label:"Recovery"},
   ];
+
+  var categoryFilter = filter === "recovery" ? "Recovery" : null;
 
   var filtered = HOME_WORKOUTS.filter(function(w) {
     if (filter === "all") return true;
+    if (filter === "recovery") return w.category === "Recovery";
     if (filter === "none") return w.equipment.length === 0;
     return w.equipment.includes(filter);
   });
@@ -5149,22 +5252,373 @@ function HomeWorkoutsView({T, dark, onStartWorkout}) {
 }
 
 
+
+// ─── Gym Programs ───────────────────────────────────────────────────────────────
+const GYM_PROGRAMS = [
+  {
+    id: "gp1", name: "Push Day A", program: "Push/Pull/Legs", category: "Upper Body",
+    split: "PPL", day: "Push", duration: "55 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Barbell Bench Press", sets:4, reps:"8-10"},
+      {name:"Incline DB Press", sets:3, reps:"10-12"},
+      {name:"Cable Flyes", sets:3, reps:"12-15"},
+      {name:"Barbell OHP", sets:3, reps:"8-10"},
+      {name:"Lateral Raises", sets:4, reps:"15"},
+      {name:"Tricep Pushdowns", sets:3, reps:"12"},
+      {name:"Overhead Tricep Extension", sets:3, reps:"12"}
+    ]
+  },
+  {
+    id: "gp2", name: "Pull Day A", program: "Push/Pull/Legs", category: "Upper Body",
+    split: "PPL", day: "Pull", duration: "55 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Barbell Rows", sets:4, reps:"8"},
+      {name:"Lat Pulldowns", sets:4, reps:"10-12"},
+      {name:"Seated Cable Rows", sets:3, reps:"12"},
+      {name:"Single Arm DB Row", sets:3, reps:"10"},
+      {name:"Face Pulls", sets:3, reps:"20"},
+      {name:"Dumbbell Curls", sets:3, reps:"12"},
+      {name:"Hammer Curls", sets:3, reps:"12"}
+    ]
+  },
+  {
+    id: "gp3", name: "Leg Day A", program: "Push/Pull/Legs", category: "Lower Body",
+    split: "PPL", day: "Legs", duration: "60 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Barbell Squats", sets:4, reps:"6-8"},
+      {name:"Romanian Deadlift", sets:3, reps:"10"},
+      {name:"Leg Press", sets:3, reps:"12"},
+      {name:"Leg Extensions", sets:3, reps:"15"},
+      {name:"Lying Leg Curls", sets:3, reps:"12"},
+      {name:"Standing Calf Raises", sets:4, reps:"15"}
+    ]
+  },
+  {
+    id: "gp4", name: "Push Day B", program: "Push/Pull/Legs", category: "Upper Body",
+    split: "PPL", day: "Push", duration: "55 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Incline Barbell Bench", sets:4, reps:"8-10"},
+      {name:"DB Shoulder Press", sets:4, reps:"10"},
+      {name:"Cable Flyes", sets:3, reps:"15"},
+      {name:"Lateral Raises", sets:4, reps:"15"},
+      {name:"Rear Delt Flys", sets:3, reps:"15"},
+      {name:"Skull Crushers", sets:3, reps:"10"},
+      {name:"Tricep Pushdowns", sets:3, reps:"15"}
+    ]
+  },
+  {
+    id: "gp5", name: "Pull Day B", program: "Push/Pull/Legs", category: "Upper Body",
+    split: "PPL", day: "Pull", duration: "55 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Deadlift", sets:3, reps:"5"},
+      {name:"Pull-Ups", sets:4, reps:"8", bodyweight:true},
+      {name:"Chest Supported Rows", sets:3, reps:"12"},
+      {name:"Straight-Arm Pulldowns", sets:3, reps:"15"},
+      {name:"Rear Delt Flys", sets:3, reps:"15"},
+      {name:"Barbell Curls", sets:3, reps:"10"},
+      {name:"Incline DB Curls", sets:3, reps:"12"}
+    ]
+  },
+  {
+    id: "gp6", name: "Leg Day B", program: "Push/Pull/Legs", category: "Lower Body",
+    split: "PPL", day: "Legs", duration: "60 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Front Squats", sets:4, reps:"8"},
+      {name:"Hip Thrusts", sets:4, reps:"12"},
+      {name:"Leg Press", sets:3, reps:"15"},
+      {name:"Lying Leg Curls", sets:3, reps:"12"},
+      {name:"Leg Extensions", sets:3, reps:"15"},
+      {name:"Abductor Machine", sets:3, reps:"20"},
+      {name:"Standing Calf Raises", sets:3, reps:"20"}
+    ]
+  },
+  {
+    id: "gp7", name: "Upper Body A", program: "Upper/Lower", category: "Upper Body",
+    split: "Upper/Lower", day: "Upper", duration: "55 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Barbell Bench Press", sets:4, reps:"8"},
+      {name:"Barbell Rows", sets:4, reps:"8"},
+      {name:"Incline DB Press", sets:3, reps:"12"},
+      {name:"Lat Pulldowns", sets:3, reps:"12"},
+      {name:"Lateral Raises", sets:3, reps:"15"},
+      {name:"Face Pulls", sets:3, reps:"20"},
+      {name:"Dumbbell Curls", sets:2, reps:"12"},
+      {name:"Tricep Pushdowns", sets:2, reps:"12"}
+    ]
+  },
+  {
+    id: "gp8", name: "Lower Body A", program: "Upper/Lower", category: "Lower Body",
+    split: "Upper/Lower", day: "Lower", duration: "55 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Barbell Squats", sets:4, reps:"6-8"},
+      {name:"Romanian Deadlift", sets:4, reps:"10"},
+      {name:"Leg Press", sets:3, reps:"12"},
+      {name:"Leg Curls", sets:3, reps:"12"},
+      {name:"Leg Extensions", sets:3, reps:"15"},
+      {name:"Standing Calf Raises", sets:4, reps:"15"}
+    ]
+  },
+  {
+    id: "gp9", name: "Upper Body B", program: "Upper/Lower", category: "Upper Body",
+    split: "Upper/Lower", day: "Upper", duration: "55 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Barbell OHP", sets:4, reps:"8"},
+      {name:"Pull-Ups", sets:4, reps:"8", bodyweight:true},
+      {name:"DB Shoulder Press", sets:3, reps:"12"},
+      {name:"Seated Cable Rows", sets:3, reps:"12"},
+      {name:"Cable Flyes", sets:3, reps:"15"},
+      {name:"Straight-Arm Pulldowns", sets:3, reps:"15"},
+      {name:"Skull Crushers", sets:2, reps:"10"},
+      {name:"Hammer Curls", sets:2, reps:"12"}
+    ]
+  },
+  {
+    id: "gp10", name: "Lower Body B", program: "Upper/Lower", category: "Lower Body",
+    split: "Upper/Lower", day: "Lower", duration: "55 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Deadlift", sets:4, reps:"5"},
+      {name:"Hip Thrusts", sets:4, reps:"12"},
+      {name:"Bulgarian Split Squats", sets:3, reps:"10"},
+      {name:"Leg Press", sets:3, reps:"15"},
+      {name:"Abductor Machine", sets:3, reps:"20"},
+      {name:"Standing Calf Raises", sets:3, reps:"20"}
+    ]
+  },
+  {
+    id: "gp11", name: "Full Body A", program: "Full Body 3x", category: "Full Body",
+    split: "Full Body", day: "Day A", duration: "60 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Barbell Squats", sets:3, reps:"8"},
+      {name:"Barbell Bench Press", sets:3, reps:"8"},
+      {name:"Barbell Rows", sets:3, reps:"8"},
+      {name:"Romanian Deadlift", sets:3, reps:"10"},
+      {name:"Lateral Raises", sets:3, reps:"15"},
+      {name:"Dumbbell Curls", sets:2, reps:"12"},
+      {name:"Tricep Pushdowns", sets:2, reps:"12"}
+    ]
+  },
+  {
+    id: "gp12", name: "Full Body B", program: "Full Body 3x", category: "Full Body",
+    split: "Full Body", day: "Day B", duration: "60 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Deadlift", sets:3, reps:"5"},
+      {name:"Incline DB Press", sets:3, reps:"10"},
+      {name:"Lat Pulldowns", sets:3, reps:"12"},
+      {name:"Hip Thrusts", sets:3, reps:"12"},
+      {name:"Face Pulls", sets:3, reps:"20"},
+      {name:"Hammer Curls", sets:2, reps:"12"},
+      {name:"Skull Crushers", sets:2, reps:"10"}
+    ]
+  },
+  {
+    id: "gp13", name: "Full Body C", program: "Full Body 3x", category: "Full Body",
+    split: "Full Body", day: "Day C", duration: "60 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Front Squats", sets:3, reps:"8"},
+      {name:"Barbell OHP", sets:3, reps:"8"},
+      {name:"Pull-Ups", sets:3, reps:"8", bodyweight:true},
+      {name:"Leg Press", sets:3, reps:"12"},
+      {name:"Cable Flyes", sets:3, reps:"15"},
+      {name:"Seated Cable Rows", sets:3, reps:"12"},
+      {name:"Standing Calf Raises", sets:3, reps:"15"}
+    ]
+  },
+  {
+    id: "gp14", name: "Glutes & Hamstrings", program: "Bodybuilding", category: "Lower Body",
+    split: "Bodybuilding", day: "Glutes", duration: "60 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Hip Thrusts", sets:4, reps:"10"},
+      {name:"Romanian Deadlift", sets:4, reps:"10"},
+      {name:"Leg Press", sets:3, reps:"12"},
+      {name:"Lying Leg Curls", sets:3, reps:"12"},
+      {name:"Abductor Machine", sets:3, reps:"20"},
+      {name:"Cable Kickbacks", sets:3, reps:"15"},
+      {name:"Standing Calf Raises", sets:3, reps:"20"}
+    ]
+  },
+  {
+    id: "gp15", name: "Quads & Calves", program: "Bodybuilding", category: "Lower Body",
+    split: "Bodybuilding", day: "Quads", duration: "55 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Barbell Squats", sets:4, reps:"8"},
+      {name:"Hack Squats", sets:3, reps:"12"},
+      {name:"Leg Extensions", sets:4, reps:"15"},
+      {name:"Bulgarian Split Squats", sets:3, reps:"10"},
+      {name:"Leg Press", sets:3, reps:"15"},
+      {name:"Standing Calf Raises", sets:5, reps:"15"}
+    ]
+  },
+  {
+    id: "gp16", name: "Chest & Triceps", program: "Bodybuilding", category: "Upper Body",
+    split: "Bodybuilding", day: "Chest/Tri", duration: "55 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Barbell Bench Press", sets:4, reps:"8"},
+      {name:"Incline DB Press", sets:3, reps:"10"},
+      {name:"Cable Flyes", sets:3, reps:"15"},
+      {name:"Chest Press", sets:3, reps:"12"},
+      {name:"Tricep Pushdowns", sets:3, reps:"15"},
+      {name:"Skull Crushers", sets:3, reps:"10"},
+      {name:"Overhead Tricep Extension", sets:3, reps:"12"}
+    ]
+  },
+  {
+    id: "gp17", name: "Back & Biceps", program: "Bodybuilding", category: "Upper Body",
+    split: "Bodybuilding", day: "Back/Bi", duration: "55 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Deadlift", sets:3, reps:"5"},
+      {name:"Lat Pulldowns", sets:4, reps:"12"},
+      {name:"Seated Cable Rows", sets:4, reps:"12"},
+      {name:"Single Arm DB Row", sets:3, reps:"10"},
+      {name:"Straight-Arm Pulldowns", sets:3, reps:"15"},
+      {name:"Barbell Curls", sets:3, reps:"10"},
+      {name:"Hammer Curls", sets:3, reps:"12"}
+    ]
+  },
+  {
+    id: "gp18", name: "Shoulders & Arms", program: "Bodybuilding", category: "Upper Body",
+    split: "Bodybuilding", day: "Shoulders", duration: "50 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Barbell OHP", sets:4, reps:"8"},
+      {name:"DB Shoulder Press", sets:3, reps:"12"},
+      {name:"Lateral Raises", sets:4, reps:"15"},
+      {name:"Face Pulls", sets:3, reps:"20"},
+      {name:"Rear Delt Flys", sets:3, reps:"15"},
+      {name:"Dumbbell Curls", sets:3, reps:"12"},
+      {name:"Tricep Pushdowns", sets:3, reps:"15"}
+    ]
+  },
+  {
+    id: "gp19", name: "Strength Day A", program: "Strength Focus", category: "Full Body",
+    split: "Strength", day: "Day A", duration: "60 min", difficulty: "Advanced",
+    exercises: [
+      {name:"Barbell Squats", sets:5, reps:"5"},
+      {name:"Barbell Bench Press", sets:5, reps:"5"},
+      {name:"Barbell Rows", sets:5, reps:"5"},
+      {name:"Tricep Dips", sets:3, reps:"10", bodyweight:true},
+      {name:"Pull-Ups", sets:3, reps:"8", bodyweight:true}
+    ]
+  },
+  {
+    id: "gp20", name: "Strength Day B", program: "Strength Focus", category: "Full Body",
+    split: "Strength", day: "Day B", duration: "60 min", difficulty: "Advanced",
+    exercises: [
+      {name:"Deadlift", sets:5, reps:"5"},
+      {name:"Barbell OHP", sets:5, reps:"5"},
+      {name:"Barbell Rows", sets:5, reps:"5"},
+      {name:"Pull-Ups", sets:3, reps:"8", bodyweight:true},
+      {name:"Dumbbell Curls", sets:3, reps:"10"}
+    ]
+  }
+];
+
+function GymProgramsView({T, dark, onStartWorkout}) {
+  var [filter, setFilter] = useState("all");
+  var [preview, setPreview] = useState(null);
+
+  var programs = [...new Set(GYM_PROGRAMS.map(function(w){return w.program;}))];
+  var filters = [{id:"all",label:"All"}].concat(programs.map(function(p){return {id:p,label:p};}));
+
+  var filtered = GYM_PROGRAMS.filter(function(w){
+    return filter === "all" || w.program === filter;
+  });
+
+  var diffColor = {"Beginner":"#4ade80","Intermediate":"#fbbf24","Advanced":"#ff6b6b"};
+  var programColors = {
+    "Push/Pull/Legs":"#4ecdc4","Upper/Lower":"#b794f4",
+    "Full Body 3x":"#fbbf24","Bodybuilding":"#ff6b6b","Strength Focus":"#ff9f43"
+  };
+
+  return /*#__PURE__*/React.createElement("div", {style:{padding:"0 0 100px"}},
+    preview && /*#__PURE__*/React.createElement("div", {
+      style:{position:"fixed",inset:0,zIndex:1005,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(5px)",display:"flex",alignItems:"flex-end",justifyContent:"center"},
+      onClick:function(){setPreview(null);}
+    },
+      /*#__PURE__*/React.createElement("div", {
+        onClick:function(e){e.stopPropagation();},
+        style:{background:T.sheetBg,borderRadius:"24px 24px 0 0",width:"100%",maxWidth:540,maxHeight:"80vh",overflowY:"auto",paddingBottom:32}
+      },
+        /*#__PURE__*/React.createElement("div", {style:{padding:"14px 18px 12px",borderBottom:"1px solid "+T.divider,position:"sticky",top:0,background:T.sheetBg}},
+          /*#__PURE__*/React.createElement("div", {style:{width:36,height:4,background:T.glassBorder,borderRadius:2,margin:"0 auto 12px"}}),
+          /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},
+            /*#__PURE__*/React.createElement("div", null,
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:programColors[preview.program]||"#4ecdc4",letterSpacing:2,marginBottom:4}}, preview.program.toUpperCase()),
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:18,fontWeight:800,color:T.text}}, preview.name),
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:T.textSub,marginTop:3}}, preview.duration + " \u00B7 " + preview.difficulty)
+            ),
+            /*#__PURE__*/React.createElement("button", {onClick:function(){setPreview(null);},style:{background:"transparent",border:"none",color:T.textSub,fontSize:20,cursor:"pointer"}}, "\u2715")
+          )
+        ),
+        /*#__PURE__*/React.createElement("div", {style:{padding:"14px 18px"}},
+          preview.exercises.map(function(ex, i) {
+            return /*#__PURE__*/React.createElement("div", {key:i,
+              style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid "+T.divider}
+            },
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:13,fontWeight:600,color:T.text}}, ex.name),
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:"#4ecdc4"}},
+                ex.sets+"\u00D7"+ex.reps+(ex.bodyweight?" \u2014 BW":"")
+              )
+            );
+          }),
+          /*#__PURE__*/React.createElement("button", {
+            onClick:function(){ if(onStartWorkout) onStartWorkout(preview); setPreview(null); },
+            style:{width:"100%",marginTop:16,padding:"14px",borderRadius:14,background:"#4ecdc4",border:"none",color:"#0d0d14",fontFamily:"'DM Mono', monospace",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}
+          }, "Start Workout")
+        )
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", {style:{padding:"16px 16px 0"}},
+      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:20,fontWeight:800,color:T.text,marginBottom:4}}, "Gym Programs"),
+      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:T.textSub,marginBottom:16}}, "20 workouts across 5 programs")
+    ),
+    /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6,overflowX:"auto",padding:"0 16px 12px",WebkitOverflowScrolling:"touch"}},
+      filters.map(function(f) {
+        var active = filter === f.id;
+        var col = programColors[f.id] || "#4ecdc4";
+        return /*#__PURE__*/React.createElement("button", {key:f.id,
+          onClick:function(){setFilter(f.id);},
+          style:{flexShrink:0,padding:"6px 14px",borderRadius:20,border:"1px solid "+(active?(programColors[f.id]||"#4ecdc4"):"rgba(255,255,255,0.12)"),background:active?"rgba(78,205,196,0.1)":"transparent",color:active?(programColors[f.id]||"#4ecdc4"):T.textSub,fontFamily:"'DM Mono', monospace",fontSize:10,cursor:"pointer",fontWeight:active?700:400}
+        }, f.label);
+      })
+    ),
+    /*#__PURE__*/React.createElement("div", {style:{padding:"0 16px"}},
+      filtered.map(function(w) {
+        var pc = programColors[w.program] || "#4ecdc4";
+        return /*#__PURE__*/React.createElement("div", {key:w.id,
+          onClick:function(){setPreview(w);},
+          style:{background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:14,padding:"14px",marginBottom:10,cursor:"pointer"}
+        },
+          /*#__PURE__*/React.createElement("div", {style:{fontSize:8,fontFamily:"'DM Mono', monospace",color:pc,letterSpacing:2,marginBottom:4}}, w.program.toUpperCase() + " \u00B7 " + w.day),
+          /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}},
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:14,fontWeight:700,color:T.text}}, w.name),
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:9,fontFamily:"'DM Mono', monospace",color:diffColor[w.difficulty]||"#4ecdc4"}}, w.difficulty)
+          ),
+          /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10}},
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:9,color:T.textSub,fontFamily:"'DM Mono', monospace"}}, w.duration),
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:9,color:T.textSub,fontFamily:"'DM Mono', monospace"}}, w.exercises.length + " exercises")
+          )
+        );
+      })
+    )
+  );
+}
+
 function LibraryTabView({T, dark, workouts, onAddToWorkout, onStartWorkout}) {
-  var [libTab, setLibTab] = useState("exercises");
+  var [libTab, setLibTab] = useState("gym");
   return /*#__PURE__*/React.createElement("div", null,
-    /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6,padding:"12px 16px 0",borderBottom:"1px solid "+T.divider}},
-      ["exercises","home"].map(function(t) {
-        var label = t === "exercises" ? "Exercise Library" : "Home Workouts";
-        var active = libTab === t;
+    /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:0,padding:"12px 16px 0",borderBottom:"1px solid "+T.divider,overflowX:"auto",WebkitOverflowScrolling:"touch"}},
+      [["gym","Gym Programs"],["home","Home Workouts"],["exercises","Exercise Library"]].map(function(pair) {
+        var t = pair[0], label = pair[1], active = libTab === t;
         return /*#__PURE__*/React.createElement("button", {key:t,
           onClick:function(){setLibTab(t);},
-          style:{padding:"8px 16px",borderRadius:"10px 10px 0 0",border:"none",background:active?"rgba(78,205,196,0.12)":"transparent",color:active?"#4ecdc4":T.textSub,fontFamily:"'DM Mono', monospace",fontSize:10,fontWeight:active?700:400,cursor:"pointer",borderBottom:active?"2px solid #4ecdc4":"2px solid transparent"}
+          style:{padding:"8px 14px",flexShrink:0,border:"none",background:active?"rgba(78,205,196,0.12)":"transparent",color:active?"#4ecdc4":T.textSub,fontFamily:"'DM Mono', monospace",fontSize:10,fontWeight:active?700:400,cursor:"pointer",borderBottom:active?"2px solid #4ecdc4":"2px solid transparent",whiteSpace:"nowrap"}
         }, label);
       })
     ),
     libTab === "exercises"
       ? /*#__PURE__*/React.createElement(ExerciseLibraryView, {T:T, dark:dark, workouts:workouts, onAddToWorkout:onAddToWorkout})
-      : /*#__PURE__*/React.createElement(HomeWorkoutsView, {T:T, dark:dark, onStartWorkout:onStartWorkout})
+      : libTab === "home"
+      ? /*#__PURE__*/React.createElement(HomeWorkoutsView, {T:T, dark:dark, onStartWorkout:onStartWorkout})
+      : /*#__PURE__*/React.createElement(GymProgramsView, {T:T, dark:dark, onStartWorkout:onStartWorkout})
   );
 }
 
@@ -12036,7 +12490,7 @@ function HomeWorkoutSession({hw, T, dark, onClose, onFinish, accent}) {
 
   function onToggleSet(k, exName) {
     var wasChecked = !!((currentLog.checked || {})[k]);
-    if (!timerStart) setTimerStart(Date.now());
+    // Timer must be started manually via Start button
     mutate(function(l) {
       var newC = Object.assign({}, l.checked, {[k]: !l.checked[k]});
       return Object.assign({}, l, {checked: newC});
@@ -12098,8 +12552,21 @@ function HomeWorkoutSession({hw, T, dark, onClose, onFinish, accent}) {
           timerStart ? (function(){var m=Math.floor(timerElapsed/60),s=timerElapsed%60;return m+"m "+s+"s";})() : hw.duration,
           " \u00B7 " + pct + "%"
         )
-      )
+      ),
+      !timerStart && /*#__PURE__*/React.createElement("button", {
+        onClick:function(){ setTimerStart(Date.now()); },
+        style:{padding:"8px 18px",borderRadius:20,background:ac,border:"none",color:"#0d0d14",fontFamily:"'DM Mono', monospace",fontSize:11,fontWeight:700,cursor:"pointer",letterSpacing:1,flexShrink:0}
+      }, "\u25B6 Start"),
+      timerStart && /*#__PURE__*/React.createElement("div", {
+        style:{fontFamily:"'DM Mono', monospace",fontSize:13,fontWeight:700,color:ac,flexShrink:0}
+      }, (function(){var m=Math.floor(timerElapsed/60),s=timerElapsed%60;return m+"m "+(s<10?"0":"")+s+"s";})())
     ),
+    /*#__PURE__*/React.createElement(RestTimerSheet, {
+      open:restOpen, onClose:function(){setRestOpen(false);setRestMinimized(true);},
+      onDismiss:function(){setRestOpen(false);setRestMinimized(false);setRestStartTime(null);},
+      onTargetChange:function(t){setRestTarget(t);},
+      initialTarget:restTarget, startTime:restStartTime, accent:ac, T:T
+    }),
     /*#__PURE__*/React.createElement("div", {style:{padding:"0 12px"}},
       /*#__PURE__*/React.createElement(ExerciseSection, {
         exercises: fakeWorkout.exercises,
@@ -12200,6 +12667,8 @@ function WorkoutTracker() {
   }
   const [ormOpen, setOrmOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [toast, setToast] = useState(null);
+  function showToast(msg) { setToast(msg); setTimeout(function(){setToast(null);}, 3000); }
   const [homeWorkout, setHomeWorkout] = useState(null);
   const [workoutEndTime, setWorkoutEndTime] = useState(null);
   const [snapshotElapsed, setSnapshotElapsed] = useState(0);
@@ -12772,7 +13241,12 @@ function WorkoutTracker() {
     glass: "rgba(255,255,255,0.05)",
     glassBorder: "rgba(255,255,255,0.09)"
   };
-  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React.createElement(React.Fragment, null,
+  locked && /*#__PURE__*/React.createElement(PinScreen, {
+    onUnlock: function() { setLocked(false); },
+    T: T, dark: dark
+  }),
+  !locked && /*#__PURE__*/React.createElement("div", {
     style: {
       minHeight: "100vh",
       background: T.bgGrad,
@@ -13254,7 +13728,7 @@ function WorkoutTracker() {
         }
       })();
       setMenuOpen(false);
-      alert(ok ? "✅ Face ID registered! You can now use Face ID to unlock." : "❌ Face ID registration failed or not supported.");
+      showToast(ok ? "Face ID registered successfully!" : "Face ID registration failed or not supported on this device.");
     }
   }].map(item => /*#__PURE__*/React.createElement("button", {
     key: item.label,
@@ -14009,7 +14483,10 @@ function WorkoutTracker() {
     type:"cooldown", dayId:workout.id,
     stretchLogs:stretchLogs, onToggleStretch:onToggleStretch,
     activeDate:activeDate, accent:"#4ecdc4", T:T, dark:dark
-  }))), restMinimized && restStartTime && /*#__PURE__*/React.createElement("button", {
+  }))), toast && /*#__PURE__*/React.createElement("div", {
+    style:{position:"fixed",bottom:100,left:"50%",transform:"translateX(-50%)",zIndex:1100,background:"rgba(30,30,45,0.95)",border:"1px solid rgba(78,205,196,0.3)",borderRadius:12,padding:"10px 20px",fontFamily:"'DM Mono', monospace",fontSize:11,color:"#4ecdc4",whiteSpace:"nowrap",boxShadow:"0 4px 20px rgba(0,0,0,0.4)"}
+  }, toast),
+  restMinimized && restStartTime && /*#__PURE__*/React.createElement("button", {
     onClick: () => { setRestMinimized(false); setRestOpen(true); },
     style: {position:"fixed",bottom:170,right:16,zIndex:90,padding:"8px 14px",borderRadius:24,background:"#4ecdc4",border:"none",cursor:"pointer",boxShadow:"0 4px 16px rgba(78,205,196,0.4)",display:"flex",alignItems:"center",gap:8}
   },
@@ -14075,7 +14552,7 @@ function WorkoutTracker() {
       letterSpacing: 0.5,
       marginTop: 1
     }
-  }, "REST")))));
+  }, "REST")))))
 }
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(React.createElement(WorkoutTracker));</script></body></html>
