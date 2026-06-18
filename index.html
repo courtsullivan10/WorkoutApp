@@ -4885,6 +4885,289 @@ function AddToWorkoutPicker({
     }
   }, "Cancel")));
 }
+
+// ─── Home Workouts ─────────────────────────────────────────────────────────────
+const HOME_WORKOUTS = [
+  {
+    id: "hw1", name: "Bodyweight Push Day", category: "Upper Body",
+    equipment: [], duration: "35 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Push-Ups", sets:4, reps:"12"},
+      {name:"Pike Push-Ups", sets:3, reps:"10"},
+      {name:"Wide Push-Ups", sets:3, reps:"12"},
+      {name:"Diamond Push-Ups", sets:3, reps:"8"},
+      {name:"Tricep Dips", sets:3, reps:"12"},
+      {name:"Plank", sets:3, reps:"45s", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw2", name: "Bodyweight Pull Day", category: "Upper Body",
+    equipment: [], duration: "30 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Pull-Ups", sets:4, reps:"8", bodyweight:true},
+      {name:"Scapular Push-Ups", sets:3, reps:"12", bodyweight:true},
+      {name:"Inverted Rows", sets:3, reps:"10", bodyweight:true},
+      {name:"Dead Bug", sets:3, reps:"10", bodyweight:true},
+      {name:"Hollow Hold", sets:3, reps:"30s", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw3", name: "Bodyweight Leg Day", category: "Lower Body",
+    equipment: [], duration: "40 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Bodyweight Squats", sets:4, reps:"20", bodyweight:true},
+      {name:"Reverse Lunges", sets:3, reps:"12", bodyweight:true},
+      {name:"Glute Bridges (unweighted)", sets:4, reps:"20", bodyweight:true},
+      {name:"Single-Leg Hip Thrusts", sets:3, reps:"12", bodyweight:true},
+      {name:"Donkey Kicks", sets:3, reps:"15", bodyweight:true},
+      {name:"Calf Raises", sets:3, reps:"20", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw4", name: "Full Body Circuit", category: "Full Body",
+    equipment: [], duration: "30 min", difficulty: "Beginner",
+    exercises: [
+      {name:"Bodyweight Squats", sets:3, reps:"15", bodyweight:true},
+      {name:"Push-Ups", sets:3, reps:"10"},
+      {name:"Reverse Lunges", sets:3, reps:"10", bodyweight:true},
+      {name:"Mountain Climbers", sets:3, reps:"30s", bodyweight:true},
+      {name:"Glute Bridges (unweighted)", sets:3, reps:"15", bodyweight:true},
+      {name:"Plank", sets:3, reps:"30s", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw5", name: "Core Destroyer", category: "Core",
+    equipment: [], duration: "20 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Dead Bug", sets:3, reps:"10", bodyweight:true},
+      {name:"Hollow Hold", sets:3, reps:"30s", bodyweight:true},
+      {name:"Mountain Climbers", sets:3, reps:"40s", bodyweight:true},
+      {name:"Reverse Crunches", sets:3, reps:"15", bodyweight:true},
+      {name:"Side Planks", sets:3, reps:"30s", bodyweight:true},
+      {name:"Plank", sets:3, reps:"45s", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw6", name: "Band Upper Body", category: "Upper Body",
+    equipment: ["bands"], duration: "40 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Band Pull-Aparts", sets:4, reps:"20"},
+      {name:"Lat Pulldowns", sets:4, reps:"12"},
+      {name:"Seated Cable Rows", sets:4, reps:"12"},
+      {name:"Band Curls", sets:3, reps:"15"},
+      {name:"Tricep Pushdowns", sets:3, reps:"15"},
+      {name:"Face Pulls", sets:3, reps:"20"}
+    ]
+  },
+  {
+    id: "hw7", name: "Band Lower Body", category: "Lower Body",
+    equipment: ["bands"], duration: "40 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Banded Hip Thrusts", sets:4, reps:"15"},
+      {name:"Clamshells", sets:3, reps:"20"},
+      {name:"Cable Hip Abduction", sets:3, reps:"20"},
+      {name:"Reverse Lunges", sets:3, reps:"12", bodyweight:true},
+      {name:"Donkey Kicks", sets:3, reps:"15", bodyweight:true},
+      {name:"Fire Hydrants", sets:3, reps:"15", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw8", name: "Band Full Body", category: "Full Body",
+    equipment: ["bands"], duration: "45 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Bodyweight Squats", sets:3, reps:"15", bodyweight:true},
+      {name:"Band Pull-Aparts", sets:3, reps:"20"},
+      {name:"Push-Ups", sets:3, reps:"12"},
+      {name:"Clamshells", sets:3, reps:"15"},
+      {name:"Lat Pulldowns", sets:3, reps:"12"},
+      {name:"Banded Hip Thrusts", sets:3, reps:"15"},
+      {name:"Plank", sets:3, reps:"45s", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw9", name: "Slider Leg Burner", category: "Lower Body",
+    equipment: ["sliders"], duration: "35 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Slider Reverse Lunges", sets:4, reps:"12"},
+      {name:"Slider Hamstring Curls", sets:4, reps:"12"},
+      {name:"Slider Lateral Lunges", sets:3, reps:"10"},
+      {name:"Glute Bridges (unweighted)", sets:4, reps:"20", bodyweight:true},
+      {name:"Slider Mountain Climbers", sets:3, reps:"40s"}
+    ]
+  },
+  {
+    id: "hw10", name: "Slider Core & Abs", category: "Core",
+    equipment: ["sliders"], duration: "25 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Slider Plank Body Saw", sets:3, reps:"12"},
+      {name:"Slider Pike", sets:3, reps:"10"},
+      {name:"Slider Mountain Climbers", sets:3, reps:"40s"},
+      {name:"Slider Knee Tucks", sets:3, reps:"12"},
+      {name:"Dead Bug", sets:3, reps:"10", bodyweight:true},
+      {name:"Side Planks", sets:3, reps:"30s", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw11", name: "Jump Rope HIIT", category: "Cardio",
+    equipment: ["jump rope"], duration: "25 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Jump Rope", sets:5, reps:"2 min"},
+      {name:"Push-Ups", sets:5, reps:"10"},
+      {name:"Jump Rope", sets:4, reps:"90s"},
+      {name:"Bodyweight Squats", sets:4, reps:"15", bodyweight:true},
+      {name:"High Knees", sets:4, reps:"30s", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw12", name: "Jump Rope & Strength", category: "Full Body",
+    equipment: ["jump rope"], duration: "40 min", difficulty: "Intermediate",
+    exercises: [
+      {name:"Jump Rope", sets:3, reps:"2 min"},
+      {name:"Push-Ups", sets:3, reps:"12"},
+      {name:"Bodyweight Squats", sets:3, reps:"15", bodyweight:true},
+      {name:"Jump Rope", sets:3, reps:"90s"},
+      {name:"Reverse Lunges", sets:3, reps:"10", bodyweight:true},
+      {name:"Plank", sets:3, reps:"45s", bodyweight:true}
+    ]
+  },
+  {
+    id: "hw13", name: "Full Kit Workout", category: "Full Body",
+    equipment: ["bands","sliders","jump rope"], duration: "50 min", difficulty: "Advanced",
+    exercises: [
+      {name:"Jump Rope", sets:3, reps:"90s"},
+      {name:"Banded Hip Thrusts", sets:4, reps:"15"},
+      {name:"Push-Ups", sets:4, reps:"12"},
+      {name:"Band Pull-Aparts", sets:3, reps:"20"},
+      {name:"Slider Reverse Lunges", sets:3, reps:"10"},
+      {name:"Slider Hamstring Curls", sets:3, reps:"10"},
+      {name:"Jump Rope", sets:3, reps:"60s"},
+      {name:"Plank", sets:3, reps:"45s", bodyweight:true}
+    ]
+  }
+];
+
+function HomeWorkoutsView({T, dark, onStartWorkout}) {
+  var [filter, setFilter] = useState("all");
+  var [preview, setPreview] = useState(null);
+
+  var filters = [
+    {id:"all", label:"All"},
+    {id:"none", label:"No Equipment"},
+    {id:"bands", label:"Bands"},
+    {id:"sliders", label:"Sliders"},
+    {id:"jump rope", label:"Jump Rope"},
+  ];
+
+  var filtered = HOME_WORKOUTS.filter(function(w) {
+    if (filter === "all") return true;
+    if (filter === "none") return w.equipment.length === 0;
+    return w.equipment.includes(filter);
+  });
+
+  var diffColor = {"Beginner":"#4ade80","Intermediate":"#fbbf24","Advanced":"#ff6b6b"};
+  var equipIcons = {"bands":"B","sliders":"S","jump rope":"J"};
+
+  return /*#__PURE__*/React.createElement("div", {style:{padding:"0 0 100px"}},
+    preview && /*#__PURE__*/React.createElement("div", {
+      style:{position:"fixed",inset:0,zIndex:1005,background:"rgba(0,0,0,0.7)",backdropFilter:"blur(5px)",display:"flex",alignItems:"flex-end",justifyContent:"center"},
+      onClick:function(){setPreview(null);}
+    },
+      /*#__PURE__*/React.createElement("div", {
+        onClick:function(e){e.stopPropagation();},
+        style:{background:T.sheetBg,borderRadius:"24px 24px 0 0",width:"100%",maxWidth:540,maxHeight:"80vh",overflowY:"auto",paddingBottom:32}
+      },
+        /*#__PURE__*/React.createElement("div", {style:{padding:"14px 18px 12px",borderBottom:"1px solid "+T.divider,position:"sticky",top:0,background:T.sheetBg}},
+          /*#__PURE__*/React.createElement("div", {style:{width:36,height:4,background:T.glassBorder,borderRadius:2,margin:"0 auto 12px"}}),
+          /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}},
+            /*#__PURE__*/React.createElement("div", null,
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:18,fontWeight:800,color:T.text}}, preview.name),
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:T.textSub,marginTop:3,letterSpacing:1}},
+                preview.duration + " · " + preview.category + " · " + preview.difficulty
+              )
+            ),
+            /*#__PURE__*/React.createElement("button", {onClick:function(){setPreview(null);},style:{background:"transparent",border:"none",color:T.textSub,fontSize:20,cursor:"pointer"}}, "✕")
+          )
+        ),
+        /*#__PURE__*/React.createElement("div", {style:{padding:"14px 18px"}},
+          preview.equipment.length > 0 && /*#__PURE__*/React.createElement("div", {
+            style:{background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:10,padding:"8px 12px",marginBottom:14,fontFamily:"'DM Mono', monospace",fontSize:10,color:T.textSub}
+          }, "Equipment: " + preview.equipment.join(", ")),
+          preview.exercises.map(function(ex, i) {
+            return /*#__PURE__*/React.createElement("div", {key:i,
+              style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 0",borderBottom:"1px solid "+T.divider}
+            },
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:13,fontWeight:600,color:T.text}}, ex.name),
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:"#4ecdc4"}},
+                ex.sets + "×" + ex.reps + (ex.bodyweight ? " — BW" : "")
+              )
+            );
+          }),
+          /*#__PURE__*/React.createElement("button", {
+            onClick: function() {
+              if (onStartWorkout) onStartWorkout(preview);
+              setPreview(null);
+            },
+            style:{width:"100%",marginTop:16,padding:"14px",borderRadius:14,background:"#4ecdc4",border:"none",color:"#0d0d14",fontFamily:"'DM Mono', monospace",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}
+          }, "Start Workout")
+        )
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", {style:{padding:"16px 16px 0"}},
+      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:20,fontWeight:800,color:T.text,marginBottom:4}}, "Home Workouts"),
+      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:T.textSub,marginBottom:16}}, "No gym needed")
+    ),
+    /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6,overflowX:"auto",padding:"0 16px 12px",WebkitOverflowScrolling:"touch"}},
+      filters.map(function(f) {
+        var active = filter === f.id;
+        return /*#__PURE__*/React.createElement("button", {key:f.id,
+          onClick:function(){setFilter(f.id);},
+          style:{flexShrink:0,padding:"6px 14px",borderRadius:20,border:"1px solid "+(active?"#4ecdc4":"rgba(255,255,255,0.12)"),background:active?"rgba(78,205,196,0.15)":"transparent",color:active?"#4ecdc4":T.textSub,fontFamily:"'DM Mono', monospace",fontSize:10,cursor:"pointer",fontWeight:active?700:400}
+        }, f.label);
+      })
+    ),
+    /*#__PURE__*/React.createElement("div", {style:{padding:"0 16px"}},
+      filtered.map(function(w) {
+        return /*#__PURE__*/React.createElement("div", {key:w.id,
+          onClick:function(){setPreview(w);},
+          style:{background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:14,padding:"14px",marginBottom:10,cursor:"pointer",transition:"all 0.15s"}
+        },
+          /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}},
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:14,fontWeight:700,color:T.text,flex:1,paddingRight:8}}, w.name),
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:9,fontFamily:"'DM Mono', monospace",color:diffColor[w.difficulty]||"#4ecdc4",flexShrink:0}}, w.difficulty)
+          ),
+          /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10,alignItems:"center"}},
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:9,color:T.textSub,fontFamily:"'DM Mono', monospace"}}, w.duration),
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:9,color:T.textSub,fontFamily:"'DM Mono', monospace"}}, w.category),
+            w.equipment.length === 0
+              ? /*#__PURE__*/React.createElement("div", {style:{fontSize:8,fontFamily:"'DM Mono', monospace",color:"#4ade80",background:"rgba(74,222,128,0.1)",border:"1px solid rgba(74,222,128,0.2)",borderRadius:4,padding:"1px 6px"}}, "No Equipment")
+              : w.equipment.map(function(eq,i){ return /*#__PURE__*/React.createElement("div", {key:i,style:{fontSize:8,fontFamily:"'DM Mono', monospace",color:"#fbbf24",background:"rgba(251,191,36,0.1)",border:"1px solid rgba(251,191,36,0.2)",borderRadius:4,padding:"1px 6px"}}, eq); })
+          )
+        );
+      })
+    )
+  );
+}
+
+
+function LibraryTabView({T, dark, workouts, onAddToWorkout, onStartWorkout}) {
+  var [libTab, setLibTab] = useState("exercises");
+  return /*#__PURE__*/React.createElement("div", null,
+    /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6,padding:"12px 16px 0",borderBottom:"1px solid "+T.divider}},
+      ["exercises","home"].map(function(t) {
+        var label = t === "exercises" ? "Exercise Library" : "Home Workouts";
+        var active = libTab === t;
+        return /*#__PURE__*/React.createElement("button", {key:t,
+          onClick:function(){setLibTab(t);},
+          style:{padding:"8px 16px",borderRadius:"10px 10px 0 0",border:"none",background:active?"rgba(78,205,196,0.12)":"transparent",color:active?"#4ecdc4":T.textSub,fontFamily:"'DM Mono', monospace",fontSize:10,fontWeight:active?700:400,cursor:"pointer",borderBottom:active?"2px solid #4ecdc4":"2px solid transparent"}
+        }, label);
+      })
+    ),
+    libTab === "exercises"
+      ? /*#__PURE__*/React.createElement(ExerciseLibraryView, {T:T, dark:dark, workouts:workouts, onAddToWorkout:onAddToWorkout})
+      : /*#__PURE__*/React.createElement(HomeWorkoutsView, {T:T, dark:dark, onStartWorkout:onStartWorkout})
+  );
+}
+
 function ExerciseLibraryView({
   T,
   dark,
@@ -11701,6 +11984,148 @@ function ShareCard({workout, currentLog, activeDate, completedDates, streak, tim
 }
 
 
+
+// ─── Home Workout Session ───────────────────────────────────────────────────────
+function HomeWorkoutSession({hw, T, dark, onClose, onFinish, accent}) {
+  var [logs, setLogs] = useState({});
+  var [formCueEx, setFormCueEx] = useState(null);
+  var [panelEx, setPanelEx] = useState(null);
+  var [restOpen, setRestOpen] = useState(false);
+  var [restTarget, setRestTarget] = useState(90);
+  var [restStartTime, setRestStartTime] = useState(null);
+  var [restMinimized, setRestMinimized] = useState(false);
+  var [restTick, setRestTick] = useState(0);
+  var [timerStart, setTimerStart] = useState(null);
+  var [timerElapsed, setTimerElapsed] = useState(0);
+  var timerRef = React.useRef(null);
+  var ac = accent || "#4ecdc4";
+
+  // Workout timer
+  useEffect(function() {
+    timerRef.current = setInterval(function() {
+      if (timerStart) setTimerElapsed(Math.floor((Date.now() - timerStart) / 1000));
+    }, 1000);
+    return function() { clearInterval(timerRef.current); };
+  }, [timerStart]);
+
+  // Rest pill tick
+  useEffect(function() {
+    if (!restMinimized || !restStartTime) return;
+    var iv = setInterval(function() {
+      var remaining = Math.max(0, restTarget - Math.floor((Date.now() - restStartTime) / 1000));
+      setRestTick(function(t) { return t + 1; });
+      if (remaining <= 0) {
+        setRestMinimized(false);
+        setRestStartTime(null);
+        clearInterval(iv);
+        setTimeout(function() { playBeep("rest_done"); }, 50);
+      }
+    }, 1000);
+    return function() { clearInterval(iv); };
+  }, [restMinimized, restStartTime]);
+
+  var logKey = "home-" + hw.id;
+  var currentLog = logs[logKey] || {checked:{}, weights:{}, increased:{}};
+
+  function mutate(fn) {
+    setLogs(function(prev) {
+      var cur = prev[logKey] || {checked:{}, weights:{}, increased:{}};
+      return Object.assign({}, prev, {[logKey]: fn(cur)});
+    });
+  }
+
+  function onToggleSet(k, exName) {
+    var wasChecked = !!((currentLog.checked || {})[k]);
+    if (!timerStart) setTimerStart(Date.now());
+    mutate(function(l) {
+      var newC = Object.assign({}, l.checked, {[k]: !l.checked[k]});
+      return Object.assign({}, l, {checked: newC});
+    });
+    if (!wasChecked) {
+      setRestTarget(getSuggestedRest(exName));
+      setRestStartTime(Date.now());
+      setRestMinimized(false);
+      setRestOpen(true);
+    }
+  }
+
+  function onSaveWeight(k, v) {
+    mutate(function(l) {
+      return Object.assign({}, l, {weights: Object.assign({}, l.weights, {[k]: v})});
+    });
+  }
+
+  var totalSets = hw.exercises.reduce(function(a, e) { return a + (e.sets || 0); }, 0);
+  var doneCount = Object.values(currentLog.checked || {}).filter(Boolean).length;
+  var pct = totalSets ? Math.round(doneCount / totalSets * 100) : 0;
+
+  // Convert hw exercises to ExerciseSection format
+  var fakeWorkout = {
+    id: hw.id, name: hw.name, tagColor: ac,
+    exercises: hw.exercises.map(function(e, i) {
+      return Object.assign({}, e, {id: "hw"+i, section: "ex"});
+    }),
+    core: []
+  };
+
+  return /*#__PURE__*/React.createElement("div", {style:{position:"fixed",inset:0,zIndex:900,background:T.bgGrad,overflowY:"auto",WebkitOverflowScrolling:"touch",paddingBottom:100}},
+    formCueEx && /*#__PURE__*/React.createElement(FormCueSheet, {ex:formCueEx, T:T, dark:dark, onClose:function(){setFormCueEx(null);}}),
+    panelEx && /*#__PURE__*/React.createElement(ExercisePanel, {ex:panelEx.ex, accent:panelEx.accent, T:T, dark:dark, onSwapExercise:function(){setPanelEx(null);}, onClose:function(){setPanelEx(null);}}),
+    /*#__PURE__*/React.createElement(RestTimerSheet, {
+      open:restOpen, onClose:function(){setRestOpen(false);setRestMinimized(true);},
+      onDismiss:function(){setRestOpen(false);setRestMinimized(false);setRestStartTime(null);},
+      onTargetChange:function(t){setRestTarget(t);},
+      initialTarget:restTarget, startTime:restStartTime, accent:ac, T:T
+    }),
+    restMinimized && restStartTime && /*#__PURE__*/React.createElement("button", {
+      onClick:function(){setRestMinimized(false);setRestOpen(true);},
+      style:{position:"fixed",bottom:170,right:16,zIndex:920,padding:"8px 14px",borderRadius:24,background:"#4ecdc4",border:"none",cursor:"pointer",boxShadow:"0 4px 16px rgba(78,205,196,0.4)",display:"flex",alignItems:"center",gap:8}
+    },
+      /*#__PURE__*/React.createElement("span",{style:{fontSize:14}},"\u23F1"),
+      /*#__PURE__*/React.createElement("span",{style:{fontFamily:"'DM Mono', monospace",fontSize:12,fontWeight:700,color:"#0d0d14"}},
+        (function(){
+          var remaining = Math.max(0, restTarget - Math.floor((Date.now() - restStartTime)/1000));
+          var m = Math.floor(remaining/60), s = remaining%60;
+          return m>0 ? m+":"+(s<10?"0":"")+s : s+"s";
+        })()
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", {style:{padding:"16px 16px 0",display:"flex",alignItems:"center",gap:12,marginBottom:8,position:"sticky",top:0,background:T.bgGrad,zIndex:1}},
+      /*#__PURE__*/React.createElement("button", {onClick:onClose,style:{background:"transparent",border:"none",color:T.textSub,fontSize:20,cursor:"pointer",padding:4}}, "\u2190"),
+      /*#__PURE__*/React.createElement("div", {style:{flex:1}},
+        /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:16,fontWeight:800,color:T.text}}, hw.name),
+        /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:T.textSub,marginTop:2}},
+          timerStart ? (function(){var m=Math.floor(timerElapsed/60),s=timerElapsed%60;return m+"m "+s+"s";})() : hw.duration,
+          " \u00B7 " + pct + "%"
+        )
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", {style:{padding:"0 12px"}},
+      /*#__PURE__*/React.createElement(ExerciseSection, {
+        exercises: fakeWorkout.exercises,
+        section: "ex", label: "Exercises", accent: ac,
+        logKey: logKey, currentLog: currentLog, prevLog: {},
+        dark: dark, T: T, mutate: mutate,
+        onToggleSet: onToggleSet,
+        onSaveWeight: onSaveWeight,
+        onTogglePR: function(){},
+        onSwapExercise: function(){},
+        onOpenPanel: function(ex){ setPanelEx({ex:ex, accent:ac}); },
+        onShowCue: function(ex){ setFormCueEx(ex); },
+        onShowCardioTimer: function(){},
+        deload: null
+      })
+    ),
+    pct > 0 && /*#__PURE__*/React.createElement("div", {style:{padding:"12px"}},
+      /*#__PURE__*/React.createElement("button", {
+        onClick: onFinish,
+        style:{width:"100%",padding:"14px",borderRadius:14,background:"linear-gradient(135deg,rgba(78,205,196,0.15),rgba(78,205,196,0.05))",border:"1px solid rgba(78,205,196,0.3)",color:"#4ecdc4",fontFamily:"'DM Mono', monospace",fontSize:13,fontWeight:700,cursor:"pointer",letterSpacing:1}
+      }, "\u2705 Finish Workout")
+    )
+  );
+}
+
+
 function WorkoutTracker() {
   const [locked, setLocked] = useState(false);
   const [plans, setPlans] = useState(() => {
@@ -11775,6 +12200,7 @@ function WorkoutTracker() {
   }
   const [ormOpen, setOrmOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
+  const [homeWorkout, setHomeWorkout] = useState(null);
   const [workoutEndTime, setWorkoutEndTime] = useState(null);
   const [snapshotElapsed, setSnapshotElapsed] = useState(0);
   const completedDates = useMemo(() => getCompletedDates(logs, freeLogs), [logs, freeLogs]);
@@ -12522,7 +12948,13 @@ function WorkoutTracker() {
     open: ormOpen, onClose: () => setOrmOpen(false),
     T: T, dark: dark
   }),
-  shareOpen && /*#__PURE__*/shareOpen && workout && /*#__PURE__*/React.createElement(ShareCard, {
+  homeWorkout && /*#__PURE__*/React.createElement(HomeWorkoutSession, {
+    hw: homeWorkout,
+    T: T, dark: dark,
+    onClose: function() { setHomeWorkout(null); },
+    onFinish: function() { setHomeWorkout(null); }
+  }),
+  shareOpen && workout && /*#__PURE__*/React.createElement(ShareCard, {
     workout: workout, currentLog: currentLog,
     activeDate: activeDate, completedDates: completedDates, streak: streak,
     timerElapsed: snapshotElapsed || timerElapsed,
@@ -13036,11 +13468,14 @@ function WorkoutTracker() {
     stretchLogs: stretchLogs,
     onToggleStretch: onToggleStretch,
     activeDate: activeDate
-  }), view === "library" && /*#__PURE__*/React.createElement(ExerciseLibraryView, {
+  }), view === "library" && /*#__PURE__*/React.createElement(LibraryTabView, {
     T: T,
     dark: dark,
     workouts: workouts,
-    onAddToWorkout: onAddToWorkout
+    onAddToWorkout: onAddToWorkout,
+    onStartWorkout: function(hw) {
+      setHomeWorkout(hw);
+    }
   }), view === "challenge" && /*#__PURE__*/React.createElement(ChallengeView, {
     T: T,
     dark: dark
@@ -13283,7 +13718,12 @@ function WorkoutTracker() {
       fontFamily: "'DM Mono', monospace",
       marginTop: 1
     }
-  }, "Last: ", fmtDur(currentLog.duration), currentLog.finishedAt && ` · ${fmtTime(currentLog.finishedAt)}`)), /*#__PURE__*/React.createElement("div", {
+  }, "Last: ", (function(){
+      if (currentLog.startedAt && currentLog.finishedAt) {
+        return fmtDur(Math.round((new Date(currentLog.finishedAt) - new Date(currentLog.startedAt)) / 1000));
+      }
+      return fmtDur(currentLog.duration);
+    })(), currentLog.finishedAt && ` · ${fmtTime(currentLog.finishedAt)}`)), /*#__PURE__*/React.createElement("div", {
     style: {
       display: "flex",
       gap: 6
