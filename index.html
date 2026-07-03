@@ -5986,19 +5986,23 @@ function PhotosTab({T, dark}) {
   const [photos, setPhotos] = useState(function() {
     try { return JSON.parse(localStorage.getItem(PHOTOS_KEY) || "[]"); } catch(e) { return []; }
   });
-  const [lightbox, setLightbox] = useState(null);
-  const [editWeight, setEditWeight] = useState(null);
+  var [lightboxIdx, setLightboxIdx] = useState(null);
+  var [editingDate, setEditingDate] = useState(null);
+  var [editingWeight, setEditingWeight] = useState(null);
+  var [compareMode, setCompareMode] = useState(false);
+  var [compareA, setCompareA] = useState(null);
+  var [compareB, setCompareB] = useState(null);
+  var touchStartX = React.useRef(null);
 
   function savePhotos(next) {
-    setPhotos(next);
     try { localStorage.setItem(PHOTOS_KEY, JSON.stringify(next)); } catch(e) {}
+    setPhotos(next);
   }
 
   function handleFile(e) {
     var files = Array.from(e.target.files || []);
     if (!files.length) return;
-    var loaded = 0;
-    var newPhotos = [];
+    var loaded = 0, newPhotos = [];
     files.forEach(function(file) {
       var reader = new FileReader();
       reader.onload = function(ev) {
@@ -6006,14 +6010,12 @@ function PhotosTab({T, dark}) {
         img.onload = function() {
           var canvas = document.createElement("canvas");
           var MAX = 800, w = img.width, h = img.height;
-          if (w > MAX || h > MAX) { if (w > h) { h = Math.round(h * MAX / w); w = MAX; } else { w = Math.round(w * MAX / h); h = MAX; } }
+          if (w > MAX || h > MAX) { if (w > h) { h = Math.round(h*MAX/w); w = MAX; } else { w = Math.round(w*MAX/h); h = MAX; } }
           canvas.width = w; canvas.height = h;
           canvas.getContext("2d").drawImage(img, 0, 0, w, h);
           newPhotos.push({ id: rndId(), date: getTodayKey(), weight: "", src: canvas.toDataURL("image/jpeg", 0.7) });
           loaded++;
-          if (loaded === files.length) {
-            savePhotos(photos.concat(newPhotos));
-          }
+          if (loaded === files.length) savePhotos(photos.concat(newPhotos));
         };
         img.src = ev.target.result;
       };
@@ -6022,86 +6024,168 @@ function PhotosTab({T, dark}) {
     e.target.value = "";
   }
 
-  function deletePhoto(id) {
-    savePhotos(photos.filter(function(p) { return p.id !== id; }));
-    setLightbox(null);
+  function deletePhoto(id) { savePhotos(photos.filter(function(p){ return p.id !== id; })); setLightboxIdx(null); }
+  function updateDate(id, d) { savePhotos(photos.map(function(p){ return p.id===id ? Object.assign({},p,{date:d}) : p; })); setEditingDate(null); }
+  function updateWeight(id, w) { savePhotos(photos.map(function(p){ return p.id===id ? Object.assign({},p,{weight:w}) : p; })); setEditingWeight(null); }
+
+  var sorted = photos.slice().sort(function(a,b){ return b.date.localeCompare(a.date); });
+  function goNext() { setLightboxIdx(function(i){ return Math.min(i+1, sorted.length-1); }); }
+  function goPrev() { setLightboxIdx(function(i){ return Math.max(i-1, 0); }); }
+  function handleTouchStart(e) { touchStartX.current = e.touches[0].clientX; }
+  function handleTouchEnd(e) {
+    if (touchStartX.current === null) return;
+    var dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 50) { if (dx < 0) goNext(); else goPrev(); }
+    touchStartX.current = null;
   }
 
-  function updateWeight(id, w) {
-    savePhotos(photos.map(function(p) { return p.id === id ? Object.assign({}, p, {weight: w}) : p; }));
-    if (lightbox && lightbox.id === id) setLightbox(function(lb) { return Object.assign({}, lb, {weight: w}); });
-  }
+  // Group by month
+  var groups = [];
+  sorted.forEach(function(p) {
+    var month = p.date.slice(0,7);
+    var g = groups.find(function(g){ return g.month === month; });
+    if (!g) { g = {month:month, photos:[]}; groups.push(g); }
+    g.photos.push(p);
+  });
 
+  var lightPhoto = lightboxIdx !== null ? sorted[lightboxIdx] : null;
+
+  // Auth gate - show lock screen if locked and not yet unlocked
   if (!unlocked) {
     var hasCred = !!localStorage.getItem("wt-cred-id");
-    return /*#__PURE__*/React.createElement("div", {style:{padding:"40px 24px",display:"flex",flexDirection:"column",alignItems:"center",gap:20}},
+    return /*#__PURE__*/React.createElement("div", {
+      style:{padding:"40px 24px",display:"flex",flexDirection:"column",alignItems:"center",gap:20}
+    },
       /*#__PURE__*/React.createElement("div", {style:{fontSize:48}}, "\uD83D\uDD12"),
       /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:18,fontWeight:800,color:T.text}}, "Photos Locked"),
-      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:11,color:T.textSub,textAlign:"center",lineHeight:1.6}}, "Enter your PIN to view progress photos"),
+      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:11,color:T.textSub,textAlign:"center",lineHeight:1.6}}, "Enter your PIN to view photos"),
       hasCred && /*#__PURE__*/React.createElement("button", {
         onClick:tryFaceId,
         style:{padding:"13px 28px",borderRadius:14,background:"rgba(78,205,196,0.1)",border:"1px solid #4ecdc4",color:"#4ecdc4",fontFamily:"'DM Mono', monospace",fontSize:12,fontWeight:700,cursor:"pointer",width:"100%",maxWidth:280}
       }, "\uD83C\uDF9B Use Face ID / Touch ID"),
-      /*#__PURE__*/React.createElement(PhotoPinEntry, {T:T, savedPin:photosPin, onUnlock:function(){ setUnlocked(true); setAuthErr(""); }, onError:function(msg){ setAuthErr(msg); }}),
+      /*#__PURE__*/React.createElement(PhotoPinEntry, {
+        T:T, savedPin:photosPin,
+        onUnlock:function(){ setUnlocked(true); setAuthErr(""); },
+        onError:function(msg){ setAuthErr(msg); }
+      }),
       authErr && /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:11,color:"#ff6b6b",marginTop:-10}}, authErr)
     );
   }
 
-  if (lightbox) {
-    var lb = photos.find(function(p) { return p.id === lightbox.id; }) || lightbox;
-    return /*#__PURE__*/React.createElement("div", {
-      style: { position:"fixed",inset:0,zIndex:1020,background:"rgba(0,0,0,0.95)",
-               display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:20,
-               paddingTop:"max(20px,env(safe-area-inset-top))" }
+  return /*#__PURE__*/React.createElement("div", {style:{paddingBottom:100}},
+    // Lightbox
+    lightPhoto && /*#__PURE__*/React.createElement("div", {
+      style:{position:"fixed",inset:0,zIndex:1050,background:"rgba(0,0,0,0.95)",display:"flex",flexDirection:"column"},
+      onTouchStart:handleTouchStart, onTouchEnd:handleTouchEnd
     },
-      /*#__PURE__*/React.createElement("img", { src:lb.src, style:{ maxWidth:"100%", maxHeight:"60vh", borderRadius:12, objectFit:"contain" } }),
-      /*#__PURE__*/React.createElement("div", {style:{marginTop:16,display:"flex",flexDirection:"column",alignItems:"center",gap:10,width:"100%",maxWidth:280}},
-        /*#__PURE__*/React.createElement("div", {style:{fontSize:10,color:"rgba(255,255,255,0.5)",fontFamily:"'DM Mono', monospace"}}, lb.date),
-        /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:8}},
-          /*#__PURE__*/React.createElement("span", {style:{fontSize:10,color:"rgba(255,255,255,0.5)",fontFamily:"'DM Mono', monospace"}}, "Weight:"),
-          /*#__PURE__*/React.createElement("input", {
-            type:"number", inputMode:"decimal", placeholder:"lbs",
-            value: lb.weight || "",
-            onChange: function(e) { updateWeight(lb.id, e.target.value); },
-            style:{width:80,padding:"6px 10px",borderRadius:8,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:13,fontFamily:"'DM Mono', monospace",textAlign:"center"}
-          }),
-          (lb.weight) && /*#__PURE__*/React.createElement("span", {style:{fontSize:10,color:"rgba(255,255,255,0.5)",fontFamily:"'DM Mono', monospace"}}, "lbs")
+      /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px",paddingTop:"max(16px,env(safe-area-inset-top))"}},
+        /*#__PURE__*/React.createElement("button", {onClick:function(){setLightboxIdx(null);},style:{background:"transparent",border:"none",color:"#fff",fontSize:22,cursor:"pointer",padding:8}}, "\u00D7"),
+        /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:"rgba(255,255,255,0.5)"}}, (lightboxIdx+1) + " / " + sorted.length),
+        /*#__PURE__*/React.createElement("button", {
+          onClick:function(){ deletePhoto(lightPhoto.id); },
+          style:{background:"rgba(255,80,80,0.2)",border:"1px solid rgba(255,80,80,0.3)",borderRadius:8,color:"#ff6b6b",fontSize:11,fontFamily:"'DM Mono', monospace",fontWeight:700,cursor:"pointer",padding:"6px 12px"}
+        }, "Delete")
+      ),
+      /*#__PURE__*/React.createElement("div", {style:{flex:1,display:"flex",alignItems:"center",justifyContent:"center",position:"relative"}},
+        lightboxIdx > 0 && /*#__PURE__*/React.createElement("button", {
+          onClick:goPrev,
+          style:{position:"absolute",left:8,zIndex:1,background:"rgba(255,255,255,0.1)",border:"none",borderRadius:"50%",width:40,height:40,color:"#fff",fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}
+        }, "\u2039"),
+        /*#__PURE__*/React.createElement("img", {src:lightPhoto.src,style:{maxWidth:"100%",maxHeight:"70vh",objectFit:"contain",borderRadius:8}}),
+        lightboxIdx < sorted.length-1 && /*#__PURE__*/React.createElement("button", {
+          onClick:goNext,
+          style:{position:"absolute",right:8,zIndex:1,background:"rgba(255,255,255,0.1)",border:"none",borderRadius:"50%",width:40,height:40,color:"#fff",fontSize:20,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}
+        }, "\u203a")
+      ),
+      /*#__PURE__*/React.createElement("div", {style:{padding:"12px 16px",paddingBottom:"max(16px,env(safe-area-inset-bottom))"}},
+        /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},
+          editingDate === lightPhoto.id
+            ? /*#__PURE__*/React.createElement("input", {type:"date",defaultValue:lightPhoto.date,autoFocus:true,
+                onBlur:function(e){ updateDate(lightPhoto.id, e.target.value); },
+                onKeyDown:function(e){ if(e.key==="Enter") updateDate(lightPhoto.id, e.target.value); },
+                style:{background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,color:"#fff",padding:"4px 8px",fontSize:12,fontFamily:"'DM Mono', monospace"}
+              })
+            : /*#__PURE__*/React.createElement("button", {
+                onClick:function(){ setEditingDate(lightPhoto.id); },
+                style:{background:"transparent",border:"none",color:"rgba(255,255,255,0.5)",fontFamily:"'DM Mono', monospace",fontSize:11,cursor:"pointer",padding:0}
+              }, "\uD83D\uDCC5 " + (function(d){
+                var p=d.split("-"); return p[1]+"/"+p[2]+"/"+p[0];
+              })(lightPhoto.date)),
+          editingWeight === lightPhoto.id
+            ? /*#__PURE__*/React.createElement("input", {type:"text",inputMode:"decimal",placeholder:"e.g. 145 lbs",defaultValue:lightPhoto.weight||"",autoFocus:true,
+                onBlur:function(e){ updateWeight(lightPhoto.id, e.target.value); },
+                onKeyDown:function(e){ if(e.key==="Enter") updateWeight(lightPhoto.id, e.target.value); },
+                style:{background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.3)",borderRadius:8,color:"#fff",padding:"4px 8px",fontSize:12,fontFamily:"'DM Mono', monospace",width:120,textAlign:"right"}
+              })
+            : /*#__PURE__*/React.createElement("button", {
+                onClick:function(){ setEditingWeight(lightPhoto.id); },
+                style:{background:"transparent",border:"none",color:lightPhoto.weight?"#4ecdc4":"rgba(255,255,255,0.3)",fontFamily:"'DM Mono', monospace",fontSize:11,cursor:"pointer",padding:0}
+              }, lightPhoto.weight ? "\u2696\uFE0F " + lightPhoto.weight : "+ Add weight")
         ),
-        /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:10,marginTop:6}},
-          /*#__PURE__*/React.createElement("button", {
-            onClick:function(e){ e.stopPropagation(); deletePhoto(lb.id); },
-            style:{padding:"10px 20px",borderRadius:12,background:"rgba(255,107,107,0.9)",border:"none",color:"#fff",fontSize:13,fontWeight:700,cursor:"pointer"}
-          }, "Delete"),
-          /*#__PURE__*/React.createElement("button", {
-            onClick:function(){ setLightbox(null); },
-            style:{padding:"10px 20px",borderRadius:12,background:"rgba(255,255,255,0.15)",border:"none",color:"#fff",fontSize:13,cursor:"pointer"}
-          }, "Close")
+        /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:4,overflowX:"auto",WebkitOverflowScrolling:"touch"}},
+          sorted.map(function(p,i){
+            return /*#__PURE__*/React.createElement("img", {key:p.id,src:p.src,
+              onClick:function(){ setLightboxIdx(i); },
+              style:{width:44,height:44,objectFit:"cover",borderRadius:6,flexShrink:0,
+                     border:i===lightboxIdx?"2px solid #4ecdc4":"2px solid transparent",
+                     opacity:i===lightboxIdx?1:0.5,cursor:"pointer"}
+            });
+          })
         )
       )
-    );
-  }
-
-  return /*#__PURE__*/React.createElement("div", null,
-    /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}},
-      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,letterSpacing:3,textTransform:"uppercase",color:T.textSub}},
-        photos.length + " photo" + (photos.length !== 1 ? "s" : "")
-      ),
-      /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8,alignItems:"center"}},
-        /*#__PURE__*/React.createElement("label", {style:{padding:"9px 18px",borderRadius:20,background:"#4ecdc4",color:"#0d0d14",fontSize:11,fontWeight:700,fontFamily:"'DM Mono', monospace",cursor:"pointer"}},
-          "+ Add Photos",
-          /*#__PURE__*/React.createElement("input", {type:"file",accept:"image/*",multiple:true,onChange:handleFile,style:{display:"none"}})
-        ),
-        /*#__PURE__*/React.createElement("button", {
-          onClick:function(){ setSettingPin(true); setPinStep(photosLocked ? "enter" : "set1"); },
-          style:{padding:"9px 12px",borderRadius:20,background:photosLocked?"rgba(78,205,196,0.1)":"rgba(255,255,255,0.07)",border:"1px solid "+(photosLocked?"#4ecdc4":"rgba(255,255,255,0.15)"),color:photosLocked?"#4ecdc4":"rgba(255,255,255,0.5)",fontSize:14,cursor:"pointer"}
-        }, photosLocked ? "\uD83D\uDD12" : "\uD83D\uDD13")
-      )
     ),
+
+    // Compare Mode
+    compareMode && /*#__PURE__*/React.createElement("div", {
+      style:{position:"fixed",inset:0,zIndex:1040,background:"rgba(0,0,0,0.95)",display:"flex",flexDirection:"column"}
+    },
+      /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"16px",paddingTop:"max(16px,env(safe-area-inset-top))"}},
+        /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:16,fontWeight:800,color:"#fff"}}, "Compare Photos"),
+        /*#__PURE__*/React.createElement("button", {onClick:function(){setCompareMode(false);setCompareA(null);setCompareB(null);},
+          style:{background:"transparent",border:"none",color:"#fff",fontSize:22,cursor:"pointer"}}, "\u00D7")
+      ),
+      !compareA || !compareB
+        ? /*#__PURE__*/React.createElement("div", null,
+            /*#__PURE__*/React.createElement("div", {style:{textAlign:"center",fontFamily:"'DM Mono', monospace",fontSize:10,color:"rgba(255,255,255,0.4)",padding:"0 16px 12px"}},
+              !compareA ? "Tap a photo to select BEFORE" : "Tap a photo to select AFTER"
+            ),
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",flexWrap:"wrap",gap:3,padding:"0 12px",overflowY:"auto"}},
+              sorted.map(function(p){
+                var sel = compareA && compareA.id===p.id;
+                return /*#__PURE__*/React.createElement("div", {key:p.id,
+                  onClick:function(){ if(!compareA) setCompareA(p); else if(p.id!==compareA.id) setCompareB(p); },
+                  style:{width:"calc(33.33% - 2px)",aspectRatio:"1",position:"relative",cursor:"pointer",border:sel?"2px solid #4ecdc4":"2px solid transparent",borderRadius:4,overflow:"hidden"}
+                },
+                  /*#__PURE__*/React.createElement("img", {src:p.src,style:{width:"100%",height:"100%",objectFit:"cover"}}),
+                  sel && /*#__PURE__*/React.createElement("div", {style:{position:"absolute",inset:0,background:"rgba(78,205,196,0.3)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:20}}, "\u2713")
+                );
+              })
+            )
+          )
+        : /*#__PURE__*/React.createElement("div", {style:{flex:1,display:"flex",flexDirection:"column",padding:"0 12px"}},
+            /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8,flex:1}},
+              /*#__PURE__*/React.createElement("div", {style:{flex:1,display:"flex",flexDirection:"column",gap:4}},
+                /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:"rgba(255,255,255,0.4)",textAlign:"center"}}, "BEFORE \u00B7 " + compareA.date + (compareA.weight?" \u00B7 "+compareA.weight:"")),
+                /*#__PURE__*/React.createElement("img", {src:compareA.src,style:{width:"100%",flex:1,objectFit:"contain",borderRadius:8,maxHeight:"60vh"}})
+              ),
+              /*#__PURE__*/React.createElement("div", {style:{flex:1,display:"flex",flexDirection:"column",gap:4}},
+                /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:"rgba(255,255,255,0.4)",textAlign:"center"}}, "AFTER \u00B7 " + compareB.date + (compareB.weight?" \u00B7 "+compareB.weight:"")),
+                /*#__PURE__*/React.createElement("img", {src:compareB.src,style:{width:"100%",flex:1,objectFit:"contain",borderRadius:8,maxHeight:"60vh"}})
+              )
+            ),
+            /*#__PURE__*/React.createElement("button", {
+              onClick:function(){setCompareA(null);setCompareB(null);},
+              style:{margin:"12px 0",padding:"10px",borderRadius:12,background:"rgba(78,205,196,0.15)",border:"1px solid rgba(78,205,196,0.3)",color:"#4ecdc4",fontFamily:"'DM Mono', monospace",fontSize:11,fontWeight:700,cursor:"pointer"}
+            }, "Pick Different Photos")
+          )
+    ),
+
+    // PIN setup modal
     settingPin && /*#__PURE__*/React.createElement("div", {
       style:{position:"fixed",inset:0,zIndex:600,background:"rgba(0,0,0,0.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}
     },
       /*#__PURE__*/React.createElement("div", {style:{background:"#1a1a2e",borderRadius:20,padding:28,width:"100%",maxWidth:320,textAlign:"center"}},
-        /*#__PURE__*/React.createElement("div", {style:{fontSize:32,marginBottom:12}}, "\uD83D\uDD12"),
+        /*#__PURE__*/React.createElement("div", {style:{fontSize:32,marginBottom:8}}, "\uD83D\uDD12"),
         /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:18,fontWeight:800,color:"#fff",marginBottom:20}},
           photosLocked ? "Change Photos PIN" : "Set Photos PIN"
         ),
@@ -6119,10 +6203,9 @@ function PhotosTab({T, dark}) {
           }, "Remove PIN")
         ),
         pinStep==="set1" && /*#__PURE__*/React.createElement(React.Fragment, null,
-          /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:12}}, "Choose a PIN (4\u2013 8 digits)"),
+          /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:12}}, "Choose a PIN (4\u20138 digits)"),
           /*#__PURE__*/React.createElement("input", {
-            type:"password", inputMode:"numeric", placeholder:"\u2022\u2022\u2022\u2022",
-            value:newPin, maxLength:8,
+            type:"password",inputMode:"numeric",placeholder:"\u2022\u2022\u2022\u2022",value:newPin,maxLength:8,
             onChange:function(e){ setNewPin(e.target.value.replace(/\D/g,"")); },
             autoFocus:true,
             style:{width:"100%",padding:"14px",borderRadius:12,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:24,textAlign:"center",letterSpacing:8,marginBottom:12}
@@ -6135,8 +6218,7 @@ function PhotosTab({T, dark}) {
         pinStep==="set2" && /*#__PURE__*/React.createElement(React.Fragment, null,
           /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:12}}, "Confirm your PIN"),
           /*#__PURE__*/React.createElement("input", {
-            type:"password", inputMode:"numeric", placeholder:"\u2022\u2022\u2022\u2022",
-            value:newPinConfirm, maxLength:8,
+            type:"password",inputMode:"numeric",placeholder:"\u2022\u2022\u2022\u2022",value:newPinConfirm,maxLength:8,
             onChange:function(e){ setNewPinConfirm(e.target.value.replace(/\D/g,"")); },
             autoFocus:true,
             style:{width:"100%",padding:"14px",borderRadius:12,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:24,textAlign:"center",letterSpacing:8,marginBottom:12}
@@ -6144,9 +6226,9 @@ function PhotosTab({T, dark}) {
           /*#__PURE__*/React.createElement("button", {
             onClick:function(){
               if (newPinConfirm===newPin) {
-                localStorage.setItem("wt-photos-pin", newPin);
+                localStorage.setItem("wt-photos-pin",newPin);
                 setSettingPin(false); setPinStep("enter"); setNewPin(""); setNewPinConfirm(""); setUnlocked(true); setAuthErr("");
-              } else { setAuthErr("PINs don't match — try again"); setNewPinConfirm(""); }
+              } else { setAuthErr("PINs don't match"); setNewPinConfirm(""); }
             },
             style:{width:"100%",padding:"13px",borderRadius:12,background:newPinConfirm.length>=4?"#4ecdc4":"rgba(255,255,255,0.1)",border:"none",color:newPinConfirm.length>=4?"#0d0d14":"rgba(255,255,255,0.3)",fontFamily:"'DM Mono', monospace",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:8}
           }, "Set PIN")
@@ -6159,32 +6241,61 @@ function PhotosTab({T, dark}) {
       )
     ),
 
-    photos.length === 0 && /*#__PURE__*/React.createElement("div", {style:{textAlign:"center",padding:"40px 20px"}},
-      /*#__PURE__*/React.createElement("div", {style:{fontSize:48,marginBottom:12}}, "\uD83D\uDCF8"),
-      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:16,fontWeight:700,color:T.text,marginBottom:8}}, "Track Your Progress"),
-      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:11,color:T.textSub,lineHeight:1.6,marginBottom:24}}, "Add photos to see how far you've come."),
-      /*#__PURE__*/React.createElement("label", {style:{padding:"13px 28px",borderRadius:20,background:"#4ecdc4",color:"#0d0d14",fontSize:14,fontWeight:700,fontFamily:"'Outfit', sans-serif",cursor:"pointer",display:"inline-block"}},
-        "\uD83D\uDCF8 Add Your First Photo",
-        /*#__PURE__*/React.createElement("input", {type:"file",accept:"image/*",multiple:true,onChange:handleFile,style:{display:"none"}})
+    // Top bar
+    /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"8px 16px 12px"}},
+      /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:8}},
+        /*#__PURE__*/React.createElement("span", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:T.textSub}}, photos.length + " photo" + (photos.length!==1?"s":"")),
+        photosLocked && /*#__PURE__*/React.createElement("button", {
+          onClick:function(){ setSettingPin(true); setPinStep("enter"); },
+          style:{padding:"4px 10px",borderRadius:12,background:"rgba(78,205,196,0.08)",border:"1px solid rgba(78,205,196,0.3)",color:"#4ecdc4",fontFamily:"'DM Mono', monospace",fontSize:9,cursor:"pointer"}
+        }, "\uD83D\uDD12 Locked"),
+        !photosLocked && /*#__PURE__*/React.createElement("button", {
+          onClick:function(){ setSettingPin(true); setPinStep("set1"); },
+          style:{padding:"4px 10px",borderRadius:12,background:"rgba(255,255,255,0.05)",border:"1px solid rgba(255,255,255,0.1)",color:"rgba(255,255,255,0.3)",fontFamily:"'DM Mono', monospace",fontSize:9,cursor:"pointer"}
+        }, "\uD83D\uDD13 Lock Photos")
+      ),
+      /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8,alignItems:"center"}},
+        photos.length >= 2 && /*#__PURE__*/React.createElement("button", {
+          onClick:function(){setCompareMode(true);},
+          style:{padding:"6px 14px",borderRadius:20,background:"rgba(78,205,196,0.1)",border:"1px solid rgba(78,205,196,0.3)",color:"#4ecdc4",fontFamily:"'DM Mono', monospace",fontSize:10,fontWeight:700,cursor:"pointer"}
+        }, "\u2194 Compare"),
+        /*#__PURE__*/React.createElement("label", {style:{padding:"7px 14px",borderRadius:20,background:"#4ecdc4",color:"#0d0d14",fontSize:10,fontWeight:700,fontFamily:"'DM Mono', monospace",cursor:"pointer"}},
+          "+ Add",
+          /*#__PURE__*/React.createElement("input", {type:"file",accept:"image/*",multiple:true,onChange:handleFile,style:{display:"none"}})
+        )
       )
     ),
-    photos.length > 0 && /*#__PURE__*/React.createElement("div", {style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
-      photos.slice().reverse().map(function(p) {
-        return /*#__PURE__*/React.createElement("div", {key:p.id,
-          onClick:function(){ setLightbox(p); },
-          style:{borderRadius:12,overflow:"hidden",cursor:"pointer",background:T.glass,border:"1px solid "+T.glassBorder,position:"relative"}
-        },
-          /*#__PURE__*/React.createElement("img", {src:p.src, style:{width:"100%",aspectRatio:"1",objectFit:"cover",display:"block"}}),
-          /*#__PURE__*/React.createElement("div", {style:{padding:"6px 8px",display:"flex",justifyContent:"space-between",alignItems:"center"}},
-            /*#__PURE__*/React.createElement("span", {style:{fontSize:9,color:T.textSub,fontFamily:"'DM Mono', monospace"}}, p.date),
-            p.weight && /*#__PURE__*/React.createElement("span", {style:{fontSize:9,color:"#4ecdc4",fontFamily:"'DM Mono', monospace",fontWeight:700}}, p.weight+" lbs")
-          )
-        );
-      })
-    )
+
+    // Photos grouped by month
+    photos.length === 0
+      ? /*#__PURE__*/React.createElement("div", {style:{textAlign:"center",padding:"40px 16px",color:T.textSub,fontFamily:"'DM Mono', monospace",fontSize:11,lineHeight:1.6}},
+          "No photos yet\nAdd your first progress photo above"
+        )
+      : groups.map(function(g){
+          var monthLabel = new Date(g.month+"-02").toLocaleDateString("en-US",{month:"long",year:"numeric"});
+          return /*#__PURE__*/React.createElement("div", {key:g.month,style:{marginBottom:20,padding:"0 16px"}},
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:T.textSub,letterSpacing:2,marginBottom:8,paddingTop:4}}, monthLabel.toUpperCase()),
+            /*#__PURE__*/React.createElement("div", {style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:3}},
+              g.photos.map(function(p){
+                var pidx = sorted.findIndex(function(s){ return s.id===p.id; });
+                return /*#__PURE__*/React.createElement("div", {
+                  key:p.id, onClick:function(){ setLightboxIdx(pidx); },
+                  style:{aspectRatio:"1",position:"relative",cursor:"pointer",borderRadius:6,overflow:"hidden",background:T.glass}
+                },
+                  /*#__PURE__*/React.createElement("img", {src:p.src,style:{width:"100%",height:"100%",objectFit:"cover"}}),
+                  p.weight && /*#__PURE__*/React.createElement("div", {
+                    style:{position:"absolute",bottom:0,left:0,right:0,background:"rgba(0,0,0,0.6)",padding:"2px 4px",fontFamily:"'DM Mono', monospace",fontSize:8,color:"#4ecdc4",textAlign:"center"}
+                  }, p.weight),
+                  /*#__PURE__*/React.createElement("div", {
+                    style:{position:"absolute",top:2,right:2,background:"rgba(0,0,0,0.5)",borderRadius:4,padding:"1px 4px",fontFamily:"'DM Mono', monospace",fontSize:7,color:"rgba(255,255,255,0.7)"}
+                  }, p.date.slice(5))
+                );
+              })
+            )
+          );
+        })
   );
 }
-
 
 function CalMonth({year, month, completedDates, freeDates, accent, T, onDayTap}) {
   var cells = buildMonthCalendar(year, month, completedDates, freeDates||new Set());
