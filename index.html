@@ -1673,12 +1673,12 @@ function getOverloadSuggestions(logs, workout) {
 }
 function getAllTimePRs(logs, workouts) {
   const prs = {};
-  for (const workout of workouts) {
-    const sections = [...workout.exercises.map((ex, ei) => ({
+  for (const workout of (workouts||[])) {
+    const sections = [...(workout.exercises||[]).map((ex, ei) => ({
       ex,
       section: "ex",
       ei
-    })), ...workout.core.map((ex, ei) => ({
+    })), ...(workout.core||[]).map((ex, ei) => ({
       ex,
       section: "core",
       ei
@@ -5906,7 +5906,7 @@ const BADGE_DEFS = [
   { id:"full-workout", emoji:"✅", title:"Perfect Session", desc:"Complete 100% of a workout", check:(logs,workouts)=>{
     for(const[k,log] of Object.entries(logs)){
       const dayId=k.split("-").slice(3).join("-");
-      const w=workouts.find(w=>w.id===dayId);
+      const w=(workouts||[]).find(w=>w.id===dayId);
       if(!w)continue;
       const all=[...(w.exercises||[]),...(w.core||[])];
       const total=all.reduce((a,e)=>a+(e.sets||0),0);
@@ -5937,7 +5937,52 @@ const BADGE_DEFS = [
 
 // ─── Photos Tab ────────────────────────────────────────────────────────────────
 const PHOTOS_KEY = "wt-photos";
+
+function PhotoPinEntry({T, onUnlock, onError, savedPin}) {
+  var [input, setInput] = useState("");
+  function submit(d) {
+    var next = input + d;
+    setInput(next);
+    if (next.length >= savedPin.length) {
+      if (next === savedPin) { onUnlock(); }
+      else { setTimeout(function(){ setInput(""); onError("Incorrect PIN"); }, 200); }
+    }
+  }
+  var dots = Array.from({length: Math.max(4, savedPin.length)}, function(_,i){
+    return /*#__PURE__*/React.createElement("div", {key:i, style:{width:14,height:14,borderRadius:"50%",background:i<input.length?"#4ecdc4":"transparent",border:"2px solid "+(i<input.length?"#4ecdc4":"rgba(255,255,255,0.3)")}});
+  });
+  var keys = ["1","2","3","4","5","6","7","8","9","","0","\u232B"];
+  return /*#__PURE__*/React.createElement("div", {style:{width:"100%",maxWidth:280}},
+    /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:12,justifyContent:"center",marginBottom:20}}, dots),
+    /*#__PURE__*/React.createElement("div", {style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10}},
+      keys.map(function(d,i){
+        if (!d) return /*#__PURE__*/React.createElement("div", {key:i});
+        return /*#__PURE__*/React.createElement("button", {key:i,
+          onClick:function(){ d==="\u232B" ? setInput(function(p){return p.slice(0,-1);}) : submit(d); },
+          style:{padding:"16px",borderRadius:14,background:T.glass,border:"1px solid "+T.glassBorder,color:T.text,fontSize:20,fontWeight:600,cursor:"pointer"}
+        }, d);
+      })
+    )
+  );
+}
+
 function PhotosTab({T, dark}) {
+  var photosPin = (function(){ try { return localStorage.getItem("wt-photos-pin")||""; } catch(e){ return ""; } })();
+  var photosLocked = photosPin.length > 0;
+  var [unlocked, setUnlocked] = useState(!photosLocked);
+  var [settingPin, setSettingPin] = useState(false);
+  var [newPin, setNewPin] = useState("");
+  var [newPinConfirm, setNewPinConfirm] = useState("");
+  var [pinStep, setPinStep] = useState("enter"); // "enter" | "set1" | "set2"
+  var [authErr, setAuthErr] = useState("");
+  function tryFaceId() {
+    var credId = localStorage.getItem("wt-cred-id");
+    if (!credId || !window.PublicKeyCredential) { setAuthErr("Face ID not set up"); return; }
+    var challenge = new Uint8Array(32); crypto.getRandomValues(challenge);
+    navigator.credentials.get({publicKey:{challenge,allowCredentials:[{id:Uint8Array.from(atob(credId),c=>c.charCodeAt(0)),type:"public-key"}],userVerification:"required",timeout:30000}})
+      .then(function(){ setUnlocked(true); setAuthErr(""); })
+      .catch(function(){ setAuthErr("Face ID failed - try PIN"); });
+  }
   const [photos, setPhotos] = useState(function() {
     try { return JSON.parse(localStorage.getItem(PHOTOS_KEY) || "[]"); } catch(e) { return []; }
   });
@@ -5987,6 +6032,21 @@ function PhotosTab({T, dark}) {
     if (lightbox && lightbox.id === id) setLightbox(function(lb) { return Object.assign({}, lb, {weight: w}); });
   }
 
+  if (!unlocked) {
+    var hasCred = !!localStorage.getItem("wt-cred-id");
+    return /*#__PURE__*/React.createElement("div", {style:{padding:"40px 24px",display:"flex",flexDirection:"column",alignItems:"center",gap:20}},
+      /*#__PURE__*/React.createElement("div", {style:{fontSize:48}}, "\uD83D\uDD12"),
+      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:18,fontWeight:800,color:T.text}}, "Photos Locked"),
+      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:11,color:T.textSub,textAlign:"center",lineHeight:1.6}}, "Enter your PIN to view progress photos"),
+      hasCred && /*#__PURE__*/React.createElement("button", {
+        onClick:tryFaceId,
+        style:{padding:"13px 28px",borderRadius:14,background:"rgba(78,205,196,0.1)",border:"1px solid #4ecdc4",color:"#4ecdc4",fontFamily:"'DM Mono', monospace",fontSize:12,fontWeight:700,cursor:"pointer",width:"100%",maxWidth:280}
+      }, "\uD83C\uDF9B Use Face ID / Touch ID"),
+      /*#__PURE__*/React.createElement(PhotoPinEntry, {T:T, savedPin:photosPin, onUnlock:function(){ setUnlocked(true); setAuthErr(""); }, onError:function(msg){ setAuthErr(msg); }}),
+      authErr && /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:11,color:"#ff6b6b",marginTop:-10}}, authErr)
+    );
+  }
+
   if (lightbox) {
     var lb = photos.find(function(p) { return p.id === lightbox.id; }) || lightbox;
     return /*#__PURE__*/React.createElement("div", {
@@ -6026,11 +6086,79 @@ function PhotosTab({T, dark}) {
       /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,letterSpacing:3,textTransform:"uppercase",color:T.textSub}},
         photos.length + " photo" + (photos.length !== 1 ? "s" : "")
       ),
-      /*#__PURE__*/React.createElement("label", {style:{padding:"9px 18px",borderRadius:20,background:"#4ecdc4",color:"#0d0d14",fontSize:11,fontWeight:700,fontFamily:"'DM Mono', monospace",cursor:"pointer"}},
-        "+ Add Photos",
-        /*#__PURE__*/React.createElement("input", {type:"file",accept:"image/*",multiple:true,onChange:handleFile,style:{display:"none"}})
+      /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8,alignItems:"center"}},
+        /*#__PURE__*/React.createElement("label", {style:{padding:"9px 18px",borderRadius:20,background:"#4ecdc4",color:"#0d0d14",fontSize:11,fontWeight:700,fontFamily:"'DM Mono', monospace",cursor:"pointer"}},
+          "+ Add Photos",
+          /*#__PURE__*/React.createElement("input", {type:"file",accept:"image/*",multiple:true,onChange:handleFile,style:{display:"none"}})
+        ),
+        /*#__PURE__*/React.createElement("button", {
+          onClick:function(){ setSettingPin(true); setPinStep(photosLocked ? "enter" : "set1"); },
+          style:{padding:"9px 12px",borderRadius:20,background:photosLocked?"rgba(78,205,196,0.1)":"rgba(255,255,255,0.07)",border:"1px solid "+(photosLocked?"#4ecdc4":"rgba(255,255,255,0.15)"),color:photosLocked?"#4ecdc4":"rgba(255,255,255,0.5)",fontSize:14,cursor:"pointer"}
+        }, photosLocked ? "\uD83D\uDD12" : "\uD83D\uDD13")
       )
     ),
+    settingPin && /*#__PURE__*/React.createElement("div", {
+      style:{position:"fixed",inset:0,zIndex:600,background:"rgba(0,0,0,0.9)",display:"flex",alignItems:"center",justifyContent:"center",padding:24}
+    },
+      /*#__PURE__*/React.createElement("div", {style:{background:"#1a1a2e",borderRadius:20,padding:28,width:"100%",maxWidth:320,textAlign:"center"}},
+        /*#__PURE__*/React.createElement("div", {style:{fontSize:32,marginBottom:12}}, "\uD83D\uDD12"),
+        /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:18,fontWeight:800,color:"#fff",marginBottom:20}},
+          photosLocked ? "Change Photos PIN" : "Set Photos PIN"
+        ),
+        photosLocked && pinStep==="enter" && /*#__PURE__*/React.createElement(React.Fragment, null,
+          /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:12}}, "Enter current PIN"),
+          /*#__PURE__*/React.createElement(PhotoPinEntry, {
+            T:{glass:"rgba(255,255,255,0.08)",glassBorder:"rgba(255,255,255,0.2)",text:"#fff"},
+            savedPin:photosPin,
+            onUnlock:function(){ setPinStep("set1"); setAuthErr(""); },
+            onError:function(msg){ setAuthErr(msg); }
+          }),
+          /*#__PURE__*/React.createElement("button", {
+            onClick:function(){ localStorage.removeItem("wt-photos-pin"); setSettingPin(false); window.location.reload(); },
+            style:{marginTop:12,padding:"10px 20px",borderRadius:12,background:"rgba(255,107,107,0.15)",border:"1px solid rgba(255,107,107,0.4)",color:"#ff6b6b",fontFamily:"'DM Mono', monospace",fontSize:11,cursor:"pointer",width:"100%"}
+          }, "Remove PIN")
+        ),
+        pinStep==="set1" && /*#__PURE__*/React.createElement(React.Fragment, null,
+          /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:12}}, "Choose a PIN (4\u2013 8 digits)"),
+          /*#__PURE__*/React.createElement("input", {
+            type:"password", inputMode:"numeric", placeholder:"\u2022\u2022\u2022\u2022",
+            value:newPin, maxLength:8,
+            onChange:function(e){ setNewPin(e.target.value.replace(/\D/g,"")); },
+            autoFocus:true,
+            style:{width:"100%",padding:"14px",borderRadius:12,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:24,textAlign:"center",letterSpacing:8,marginBottom:12}
+          }),
+          /*#__PURE__*/React.createElement("button", {
+            onClick:function(){ if(newPin.length>=4){ setPinStep("set2"); setAuthErr(""); } else { setAuthErr("PIN must be at least 4 digits"); } },
+            style:{width:"100%",padding:"13px",borderRadius:12,background:newPin.length>=4?"#4ecdc4":"rgba(255,255,255,0.1)",border:"none",color:newPin.length>=4?"#0d0d14":"rgba(255,255,255,0.3)",fontFamily:"'DM Mono', monospace",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:8}
+          }, "Next \u2192")
+        ),
+        pinStep==="set2" && /*#__PURE__*/React.createElement(React.Fragment, null,
+          /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:"rgba(255,255,255,0.5)",marginBottom:12}}, "Confirm your PIN"),
+          /*#__PURE__*/React.createElement("input", {
+            type:"password", inputMode:"numeric", placeholder:"\u2022\u2022\u2022\u2022",
+            value:newPinConfirm, maxLength:8,
+            onChange:function(e){ setNewPinConfirm(e.target.value.replace(/\D/g,"")); },
+            autoFocus:true,
+            style:{width:"100%",padding:"14px",borderRadius:12,background:"rgba(255,255,255,0.08)",border:"1px solid rgba(255,255,255,0.2)",color:"#fff",fontSize:24,textAlign:"center",letterSpacing:8,marginBottom:12}
+          }),
+          /*#__PURE__*/React.createElement("button", {
+            onClick:function(){
+              if (newPinConfirm===newPin) {
+                localStorage.setItem("wt-photos-pin", newPin);
+                setSettingPin(false); setPinStep("enter"); setNewPin(""); setNewPinConfirm(""); setUnlocked(true); setAuthErr("");
+              } else { setAuthErr("PINs don't match — try again"); setNewPinConfirm(""); }
+            },
+            style:{width:"100%",padding:"13px",borderRadius:12,background:newPinConfirm.length>=4?"#4ecdc4":"rgba(255,255,255,0.1)",border:"none",color:newPinConfirm.length>=4?"#0d0d14":"rgba(255,255,255,0.3)",fontFamily:"'DM Mono', monospace",fontSize:13,fontWeight:700,cursor:"pointer",marginBottom:8}
+          }, "Set PIN")
+        ),
+        authErr && /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:11,color:"#ff6b6b",marginTop:8}}, authErr),
+        /*#__PURE__*/React.createElement("button", {
+          onClick:function(){ setSettingPin(false); setPinStep("enter"); setNewPin(""); setNewPinConfirm(""); setAuthErr(""); },
+          style:{marginTop:10,padding:"10px",borderRadius:12,background:"transparent",border:"1px solid rgba(255,255,255,0.12)",color:"rgba(255,255,255,0.4)",fontFamily:"'DM Mono', monospace",fontSize:11,cursor:"pointer",width:"100%"}
+        }, "Cancel")
+      )
+    ),
+
     photos.length === 0 && /*#__PURE__*/React.createElement("div", {style:{textAlign:"center",padding:"40px 20px"}},
       /*#__PURE__*/React.createElement("div", {style:{fontSize:48,marginBottom:12}}, "\uD83D\uDCF8"),
       /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:16,fontWeight:700,color:T.text,marginBottom:8}}, "Track Your Progress"),
@@ -6106,6 +6234,7 @@ function StatsView({
   // ── Stretch data ────────────────────────────────────────────────────────────
   const [sCalYear, setSCalYear] = useState(today.getFullYear());
   const [sCalMonth, setSCalMonth] = useState(today.getMonth());
+  const allPRs = useMemo(function(){ return getAllTimePRs(logs, workouts||[]); }, [logs, workouts]);
   const stretchDays = useMemo(() => new Set(Object.entries(stretchLogs || {}).filter(([, v]) => Object.keys(v).length > 0).map(([k]) => k)), [stretchLogs]);
   const stretchStreak = useMemo(() => calcStreak(stretchDays), [stretchDays]);
   const thisMonthStretch = Array.from(stretchDays).filter(d => d.startsWith(thisMonthStr)).length;
@@ -6142,7 +6271,6 @@ function StatsView({
   const sMaxCount = Math.max(...sWeeks.map(w => w.count), 1);
 
   // ── PRs ─────────────────────────────────────────────────────────────────────
-  const prs = useMemo(() => getAllTimePRs(logs, workouts), [logs, workouts]);
   const prColors = ["#ff6b6b", "#4ecdc4", "#ffd93d", "#b794f4", "#f9a825", "#a8e6cf", "#ff9f7f", "#80d8d4"];
 
   // ── Shared helpers ──────────────────────────────────────────────────────────
@@ -6326,9 +6454,9 @@ function StatsView({
   const calDayData = calDayModal ? {
     planEntries: Object.entries(logs).filter(([k]) => k.startsWith(calDayModal)).map(([k, log]) => {
       const dayId = k.replace(calDayModal + "-", "");
-      const w = workouts.find(w => w.id === dayId);
+      const w = (workouts||[]).find(w => w.id === dayId);
       if (!w) return null;
-      const allEx = [...w.exercises, ...w.core],
+      const allEx = [...(w.exercises||[]), ...(w.core||[])],
         total = allEx.reduce((a, e) => a + (e.sets || 0), 0);
       const done = Object.values(log.checked || {}).filter(Boolean).length;
       const pct = total ? Math.min(100, Math.round(done / total * 100)) : 0;
@@ -6341,745 +6469,139 @@ function StatsView({
     freeEntries: (freeLogs || []).filter(f => f.date === calDayModal),
     stretchCount: Object.keys((stretchLogs || {})[calDayModal] || {}).length
   } : null;
-  return /*#__PURE__*/React.createElement(React.Fragment, null,
-  tab === "photos" && /*#__PURE__*/React.createElement("div", {
-    style: {position:"fixed", top:0, left:0, right:0, bottom:0, zIndex:500,
-            background: T.bgGrad, overflowY:"auto", WebkitOverflowScrolling:"touch",
-            padding:"0 0 100px"},
-    onTouchStart: function(e) { window._swipeStartX = e.touches[0].clientX; window._swipeStartY = e.touches[0].clientY; },
-    onTouchEnd: function(e) {
-      var dx = e.changedTouches[0].clientX - (window._swipeStartX||0);
-      var dy = Math.abs(e.changedTouches[0].clientY - (window._swipeStartY||0));
-      if (dx > 80 && dy < 80 && (window._swipeStartX||0) < 60) setTab("workout");
-    }
-  },
-    /*#__PURE__*/React.createElement("div",{style:{display:"flex",alignItems:"center",gap:12,padding:"16px 16px 0",marginBottom:16,position:"sticky",top:0,background:T.bgGrad,zIndex:1,paddingTop:16}},
-      /*#__PURE__*/React.createElement("button",{
-        onClick:function(){setTab("workout");},
-        style:{background:"transparent",border:"none",color:T.textSub,fontSize:20,cursor:"pointer",padding:4,lineHeight:1}
-      },"←"),
-      /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:20,fontWeight:800,color:T.text}},"Progress Photos")
-    ),
-    /*#__PURE__*/React.createElement("div",{style:{padding:"0 16px"}},
-      /*#__PURE__*/React.createElement(PhotosTab, {T:T, dark:dark})
-    )
-  ),
-  calDayModal && calDayData && /*#__PURE__*/React.createElement("div", {
-    style: {
-      position: "fixed",
-      inset: 0,
-      zIndex: 1010,
-      display: "flex",
-      alignItems: "flex-end",
-      justifyContent: "center",
-      background: "rgba(0,0,0,0.65)",
-      backdropFilter: "blur(5px)"
+  return /*#__PURE__*/React.createElement("div", {style:{paddingBottom:100}},
+    // ── Tab bar ──────────────────────────────────────────────────────────────
+    /*#__PURE__*/React.createElement("div", {
+      style:{display:"flex",gap:6,padding:"12px 16px 0",overflowX:"auto",WebkitOverflowScrolling:"touch",
+             borderBottom:"1px solid "+T.glassBorder,marginBottom:16,position:"sticky",top:0,background:T.bgGrad,zIndex:10}
     },
-    onClick: () => setCalDayModal(null)
-  }, /*#__PURE__*/React.createElement("div", {
-    onClick: e => e.stopPropagation(),
-    style: {
-      background: T.sheetBg,
-      borderRadius: "24px 24px 0 0",
-      width: "100%",
-      maxWidth: 540,
-      border: `1px solid ${T.glassBorder}`,
-      boxShadow: "0 -8px 40px rgba(0,0,0,0.5)",
-      maxHeight: "75vh",
-      overflowY: "auto",
-      paddingBottom: 32
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "14px 18px 12px",
-      borderBottom: `1px solid ${T.divider}`,
-      position: "sticky",
-      top: 0,
-      background: T.sheetBg
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 36,
-      height: 4,
-      background: T.glassBorder,
-      borderRadius: 2,
-      margin: "0 auto 12px"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: 17,
-      fontWeight: 800,
-      color: T.text
-    }
-  }, calDayModal), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 8,
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      marginTop: 2,
-      letterSpacing: 2
-    }
-  }, calDayData.planEntries.length, " workout", calDayData.planEntries.length !== 1 ? "s" : "", " \xB7 ", calDayData.freeEntries.length, " free \xB7 ", calDayData.stretchCount, " stretches")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "12px 18px"
-    }
-  }, calDayData.planEntries.length === 0 && calDayData.freeEntries.length === 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "center",
-      padding: "30px 0",
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      fontSize: 12
-    }
-  }, "No workout data for this day."), calDayData.planEntries.map(({
-    w,
-    log,
-    pct
-  }, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      background: T.glass,
-      border: `1px solid ${w.tagColor}33`,
-      borderLeft: `3px solid ${w.tagColor}`,
-      borderRadius: 12,
-      padding: "10px 14px",
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 4
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: 13,
-      fontWeight: 700,
-      color: T.text
-    }
-  }, w.emoji, " ", w.title), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 8,
-      color: w.tagColor,
-      fontFamily: "'DM Mono', monospace",
-      marginTop: 1
-    }
-  }, w.tag, " \xB7 Day ", w.day)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'DM Mono', monospace",
-      fontSize: 16,
-      fontWeight: 700,
-      color: w.tagColor
-    }
-  }, pct, "%")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      height: 3,
-      background: T.pill,
-      borderRadius: 2,
-      overflow: "hidden"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: `${pct}%`,
-      height: "100%",
-      background: w.tagColor,
-      borderRadius: 2
-    }
-  })), log.duration && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      marginTop: 4
-    }
-  }, "\u23F1 ", fmtDur(log.duration)), log.note && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      marginTop: 4,
-      fontStyle: "italic"
-    }
-  }, "\"", log.note, "\""))), calDayData.freeEntries.map(f => /*#__PURE__*/React.createElement("div", {
-    key: f.id,
-    style: {
-      background: T.glass,
-      border: `2px dashed ${f.color}55`,
-      borderRadius: 12,
-      padding: "10px 14px",
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 20
-    }
-  }, f.emoji), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: 13,
-      fontWeight: 700,
-      color: T.text
-    }
-  }, f.label), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      color: f.color,
-      fontFamily: "'DM Mono', monospace",
-      marginTop: 1
-    }
-  }, "Free Workout"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'DM Mono', monospace",
-      fontSize: 16,
-      fontWeight: 700,
-      color: f.color
-    }
-  }, fmtDur(f.duration))), f.note && /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      marginTop: 4,
-      fontStyle: "italic"
-    }
-  }, "\"", f.note, "\""))), calDayData.stretchCount > 0 && /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: T.glass,
-      border: "1px solid rgba(183,148,244,0.3)",
-      borderRadius: 12,
-      padding: "10px 14px",
-      marginBottom: 8
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: 13,
-      fontWeight: 700,
-      color: "#b794f4"
-    }
-  }, "\uD83E\uDDD8 Stretching"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      marginTop: 2
-    }
-  }, calDayData.stretchCount, " stretches completed"))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      marginBottom: 14
-    }
-  }, tabDefs.map(({
-    t,
-    label
-  }) => {
-    const ac = t === "workout" ? "#4ecdc4" : t === "stretch" ? "#b794f4" : t === "badges" ? "#fbbf24" : t === "photos" ? "#f472b6" : "#ffd93d";
-    return /*#__PURE__*/React.createElement("button", {
-      key: t,
-      onClick: () => {
-          setTab(t);
-          var root = document.getElementById("app-scroll-root");
-          if (root) root.scrollTop = 0;
-          window.scrollTo(0,0);
-          document.documentElement.scrollTop = 0;
-          document.body.scrollTop = 0;
-        },
-      style: {
-        flex: 1,
-        padding: "7px 2px",
-        borderRadius: 10,
-        border: "1px solid " + (tab === t ? ac : T.glassBorder),
-        background: tab === t ? ac + "22" : T.glass,
-        backdropFilter: "blur(8px)",
-        color: tab === t ? ac : T.textSub,
-        fontSize: 8,
-        fontFamily: "'DM Mono', monospace",
-        cursor: "pointer",
-        letterSpacing: 0,
-        whiteSpace: "nowrap",
-        minWidth: 0
-      }
-    }, label);
-  })), tab === "workout" && /*#__PURE__*/React.createElement("div", null,
-  /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr 1fr",
-      gap: 8,
-      marginBottom: 14
-    }
-  }, [{
-    icon: "🔥",
-    label: "Streak",
-    value: `${streak}d`,
-    color: "#ff6b6b"
-  }, {
-    icon: "💪",
-    label: "Sessions",
-    value: totalSessions,
-    color: "#4ecdc4"
-  }, {
-    icon: "📅",
-    label: "This Month",
-    value: thisMonth,
-    color: "#b794f4"
-  }].map(s => /*#__PURE__*/React.createElement("div", {
-    key: s.label,
-    style: {
-      background: T.glass,
-      backdropFilter: "blur(8px)",
-      border: `1px solid ${s.color}22`,
-      borderRadius: 14,
-      padding: "10px 8px",
-      textAlign: "center",
-      boxShadow: T.shadow
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      marginBottom: 2
-    }
-  }, s.icon), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: 20,
-      fontWeight: 800,
-      color: s.color,
-      lineHeight: 1,
-      marginBottom: 3
-    }
-  }, s.value), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 7,
-      letterSpacing: 2,
-      textTransform: "uppercase",
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace"
-    }
-  }, s.label)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: T.glass,
-      backdropFilter: "blur(12px)",
-      border: `1px solid ${T.glassBorder}`,
-      borderRadius: 16,
-      padding: "14px",
-      marginBottom: 12,
-      boxShadow: T.shadow
-    }
-  }, /*#__PURE__*/React.createElement(CalNav, {
-    calYear: wCalYear,
-    calMonth: wCalMonth,
-    setCalYear: setWCalYear,
-    setCalMonth: setWCalMonth,
-    accent: "#4ecdc4"
-  }), /*#__PURE__*/React.createElement(MonthCalendar, {
-    year: wCalYear,
-    month: wCalMonth,
-    completedDates: completedDates,
-    freeDates: new Set(freeLogs.map(f => f.date)),
-    accent: "#4ecdc4",
-    T: T,
-    onDayTap: d => setCalDayModal(d)
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 14,
-      marginTop: 10,
-      paddingTop: 10,
-      borderTop: `1px solid ${T.glassBorder}`
-    }
-  }, [{
-    bg: "#4ecdc4",
-    label: "Workout"
-  }, {
-    bg: "#ff6b6b",
-    label: "Free"
-  }, {
-    bg: "linear-gradient(135deg,#ff6b6b,#4ecdc4)",
-    label: "Both"
-  }, {
-    outline: true,
-    label: "Today"
-  }].map((l, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 5
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 12,
-      height: 12,
-      borderRadius: "50%",
-      background: l.bg || "transparent",
-      border: l.outline ? "1.5px solid #4ecdc4" : "none"
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 8,
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      letterSpacing: 1
-    }
-  }, l.label))))), /*#__PURE__*/React.createElement(JourneyBars, {
-    weeks: wWeeks,
-    maxCount: wMaxCount,
-    accent: "#4ecdc4"
-  }), streak > 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "rgba(255,107,107,0.08)",
-      border: "1px solid rgba(255,107,107,0.25)",
-      borderRadius: 14,
-      padding: "12px 16px",
-      display: "flex",
-      alignItems: "center",
-      gap: 14,
-      boxShadow: T.shadow
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 32
-    }
-  }, "\uD83D\uDD25"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: 20,
-      fontWeight: 800,
-      color: "#ff6b6b",
-      lineHeight: 1
-    }
-  }, streak, "-day streak"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      marginTop: 4
-    }
-  }, "Keep it up \u2014 consistency builds results."))) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: T.glass,
-      backdropFilter: "blur(8px)",
-      border: `1px solid ${T.glassBorder}`,
-      borderRadius: 14,
-      padding: "20px",
-      textAlign: "center",
-      boxShadow: T.shadow
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 28,
-      marginBottom: 8
-    }
-  }, "\uD83C\uDF31"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: 14,
-      color: T.textSub
-    }
-  }, "Log a workout to start your streak"))), tab === "stretch" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr 1fr",
-      gap: 8,
-      marginBottom: 14
-    }
-  }, [{
-    icon: "🧘",
-    label: "Stretch Streak",
-    value: `${stretchStreak}d`,
-    color: "#b794f4"
-  }, {
-    icon: "📅",
-    label: "This Month",
-    value: thisMonthStretch,
-    color: "#4ecdc4"
-  }, {
-    icon: "🗓",
-    label: "Total Days",
-    value: stretchDays.size,
-    color: "#ffd93d"
-  }].map(s => /*#__PURE__*/React.createElement("div", {
-    key: s.label,
-    style: {
-      background: T.glass,
-      backdropFilter: "blur(8px)",
-      border: `1px solid ${s.color}22`,
-      borderRadius: 14,
-      padding: "10px 8px",
-      textAlign: "center",
-      boxShadow: T.shadow
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 14,
-      marginBottom: 2
-    }
-  }, s.icon), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: 20,
-      fontWeight: 800,
-      color: s.color,
-      lineHeight: 1,
-      marginBottom: 3
-    }
-  }, s.value), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 7,
-      letterSpacing: 2,
-      textTransform: "uppercase",
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace"
-    }
-  }, s.label)))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: T.glass,
-      backdropFilter: "blur(12px)",
-      border: `1px solid ${T.glassBorder}`,
-      borderRadius: 16,
-      padding: "14px",
-      marginBottom: 12,
-      boxShadow: T.shadow
-    }
-  }, /*#__PURE__*/React.createElement(CalNav, {
-    calYear: sCalYear,
-    calMonth: sCalMonth,
-    setCalYear: setSCalYear,
-    setCalMonth: setSCalMonth,
-    accent: "#b794f4"
-  }), /*#__PURE__*/React.createElement(MonthCalendar, {
-    year: sCalYear,
-    month: sCalMonth,
-    completedDates: stretchDays,
-    accent: "#b794f4",
-    T: T,
-    onDayTap: d => setCalDayModal(d)
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 14,
-      marginTop: 10,
-      paddingTop: 10,
-      borderTop: `1px solid ${T.glassBorder}`
-    }
-  }, [{
-    bg: "#b794f4",
-    label: "Stretched"
-  }, {
-    outline: true,
-    label: "Today"
-  }, {
-    bg: "rgba(255,255,255,0.06)",
-    label: "Rest"
-  }].map((l, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 5
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      width: 12,
-      height: 12,
-      borderRadius: "50%",
-      background: l.bg || "transparent",
-      border: l.outline ? "1.5px solid #b794f4" : "none"
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      fontSize: 8,
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      letterSpacing: 1
-    }
-  }, l.label))))), /*#__PURE__*/React.createElement(JourneyBars, {
-    weeks: sWeeks,
-    maxCount: sMaxCount,
-    accent: "#b794f4"
-  }), stretchStreak > 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "rgba(183,148,244,0.08)",
-      border: "1px solid rgba(183,148,244,0.25)",
-      borderRadius: 14,
-      padding: "12px 16px",
-      display: "flex",
-      alignItems: "center",
-      gap: 14,
-      boxShadow: T.shadow
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 32
-    }
-  }, "\uD83E\uDDD8"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: 20,
-      fontWeight: 800,
-      color: "#b794f4",
-      lineHeight: 1
-    }
-  }, stretchStreak, "-day stretch streak"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      marginTop: 4
-    }
-  }, "Consistency is how flexibility is built."))) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: T.glass,
-      backdropFilter: "blur(8px)",
-      border: `1px solid ${T.glassBorder}`,
-      borderRadius: 14,
-      padding: "20px",
-      textAlign: "center",
-      boxShadow: T.shadow
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 28,
-      marginBottom: 8
-    }
-  }, "\uD83E\uDDD8"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: 14,
-      color: T.textSub
-    }
-  }, "Complete stretches in the Flex tab to start your streak"))), tab === "prs" && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      letterSpacing: 3,
-      textTransform: "uppercase",
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      marginBottom: 10
-    }
-  }, "Personal Records \xB7 All Time"), prs.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: T.glass,
-      backdropFilter: "blur(8px)",
-      border: `1px solid ${T.glassBorder}`,
-      borderRadius: 14,
-      padding: "32px 20px",
-      textAlign: "center",
-      boxShadow: T.shadow
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 28,
-      marginBottom: 8
-    }
-  }, "\uD83C\uDFC6"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: 14,
-      color: T.textSub
-    }
-  }, "Log some weights to see your records here")) : /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 1fr",
-      gap: 8
-    }
-  }, prs.map((pr, i) => {
-    const color = prColors[i % prColors.length];
-    return /*#__PURE__*/React.createElement("div", {
-      key: pr.name,
-      style: {
-        background: T.glass,
-        backdropFilter: "blur(8px)",
-        border: `1px solid ${T.glassBorder}`,
-        borderLeft: `3px solid ${color}`,
-        borderRadius: 12,
-        padding: "10px 12px",
-        boxShadow: T.shadow
-      }
-    }, /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 8,
-        letterSpacing: 1,
-        textTransform: "uppercase",
-        color,
-        fontFamily: "'DM Mono', monospace",
-        marginBottom: 3,
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-        whiteSpace: "nowrap"
-      }
-    }, pr.name), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontFamily: "'Outfit', sans-serif",
-        fontSize: 22,
-        fontWeight: 800,
-        color,
-        lineHeight: 1
-      }
-    }, pr.weight, /*#__PURE__*/React.createElement("span", {
-      style: {
-        fontSize: 11,
-        color: T.textSub,
-        fontWeight: 400
-      }
-    }, " lbs")), /*#__PURE__*/React.createElement("div", {
-      style: {
-        fontSize: 8,
-        color: T.textSub,
-        fontFamily: "'DM Mono', monospace",
-        marginTop: 3
-      }
-    }, pr.date));
-  })),
-  tab === "badges" && /*#__PURE__*/React.createElement("div", {style:{padding:"0 0 20px"}},
-      /*#__PURE__*/React.createElement("div", {style:{fontSize:9,letterSpacing:3,textTransform:"uppercase",color:T.textSub,fontFamily:"'DM Mono', monospace",marginBottom:14,padding:"0 2px"}},
-        (function(){ var e=BADGE_DEFS.filter(function(b){try{return b.check(logs,workouts,completedDates,freeLogs,stretchDays);}catch(ex){return false;}}); return e.length+" / "+BADGE_DEFS.length+" earned"; })()
+      [["workout","Workouts"],["stretch","Stretch"],["prs","Records"],["badges","Badges"],["photos","Photos"]].map(function(t) {
+        var active = tab === t[0];
+        return /*#__PURE__*/React.createElement("button", {key:t[0],
+          onClick:function(){setTab(t[0]);},
+          style:{flexShrink:0,padding:"7px 14px",marginBottom:8,borderRadius:20,
+                 border:"1px solid "+(active?"#4ecdc4":"rgba(255,255,255,0.1)"),
+                 background:active?"rgba(78,205,196,0.12)":"transparent",
+                 color:active?"#4ecdc4":T.textSub,
+                 fontFamily:"'DM Mono', monospace",fontSize:10,fontWeight:active?700:400,cursor:"pointer"}
+        }, t[1]);
+      })
+    ),
+
+    // ── WORKOUTS TAB ─────────────────────────────────────────────────────────
+    tab==="workout" && /*#__PURE__*/React.createElement("div", {style:{padding:"0 16px"}},
+      /*#__PURE__*/React.createElement("div", {style:{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:16}},
+        [{icon:"\uD83D\uDD25",value:streak+"d",label:"STREAK"},{icon:"\uD83D\uDCAA",value:String(totalSessions),label:"SESSIONS"},{icon:"\uD83D\uDDD3",value:String(thisMonth),label:"THIS MO"}].map(function(s,i){
+          return /*#__PURE__*/React.createElement("div", {key:i,style:{background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:14,padding:"14px 8px",textAlign:"center"}},
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:20,marginBottom:4}}, s.icon),
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:20,fontWeight:800,color:"#4ecdc4"}}, s.value),
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:8,color:T.textSub,marginTop:3,letterSpacing:1}}, s.label)
+          );
+        })
       ),
-      /*#__PURE__*/React.createElement("div", {style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}},
-        BADGE_DEFS.map(function(b) {
-          var earned = (function(){ try { return b.check(logs,workouts,completedDates,freeLogs,stretchDays); } catch(ex) { return false; } })();
+      /*#__PURE__*/React.createElement("div", {style:{background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:16,padding:14,marginBottom:14}},
+        /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}},
+          /*#__PURE__*/React.createElement("button", {onClick:function(){if(wCalMonth===0){setWCalYear(function(y){return y-1;});setWCalMonth(11);}else setWCalMonth(function(m){return m-1;});},style:{background:"transparent",border:"none",color:T.textSub,fontSize:18,cursor:"pointer"}},"\u2039"),
+          /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:14,fontWeight:700,color:T.text}},
+            new Date(wCalYear,wCalMonth).toLocaleString("default",{month:"long",year:"numeric"})
+          ),
+          /*#__PURE__*/React.createElement("button", {onClick:function(){if(wCalMonth===11){setWCalYear(function(y){return y+1;});setWCalMonth(0);}else setWCalMonth(function(m){return m+1;});},style:{background:"transparent",border:"none",color:T.textSub,fontSize:18,cursor:"pointer"}},"\u203a")
+        ),
+        /*#__PURE__*/React.createElement(MonthCalendar, {year:wCalYear,month:wCalMonth,completedDates:completedDates,freeDates:new Set((freeLogs||[]).map(function(f){return f.date;})),accent:"#4ecdc4",T:T,onDayTap:function(d){setCalDayModal(d);}})
+      ),
+      wWeeks.some(function(w){return w.count>0;}) && /*#__PURE__*/React.createElement("div", {style:{background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:16,padding:14}},
+        /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:T.textSub,letterSpacing:2,marginBottom:10}}, "12-WEEK JOURNEY"),
+        /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:3,alignItems:"flex-end",height:48}},
+          wWeeks.map(function(w,i){
+            var h = wMaxCount > 0 ? Math.max(4, Math.round(w.count/wMaxCount*44)) : 4;
+            return /*#__PURE__*/React.createElement("div", {key:i,style:{flex:1,height:h,borderRadius:3,background:w.count>0?"#4ecdc4":T.glassBorder,opacity:w.count>0?1:0.3}});
+          })
+        )
+      ),
+      calDayModal && /*#__PURE__*/React.createElement("div", {
+        style:{position:"fixed",inset:0,zIndex:500,background:"rgba(0,0,0,0.7)",display:"flex",alignItems:"flex-end"},
+        onClick:function(){setCalDayModal(null);}
+      },
+        /*#__PURE__*/React.createElement("div", {onClick:function(e){e.stopPropagation();},
+          style:{background:T.bgGrad,borderRadius:"20px 20px 0 0",width:"100%",padding:20,paddingBottom:40,maxHeight:"70vh",overflowY:"auto"}
+        },
+          /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:11,color:T.textSub,marginBottom:12}}, calDayModal),
+          calDayData && calDayData.planEntries.length===0 && calDayData.freeEntries.length===0 && calDayData.stretchCount===0 &&
+            /*#__PURE__*/React.createElement("div", {style:{color:T.textSub,fontFamily:"'DM Mono', monospace",fontSize:11,textAlign:"center",padding:"20px 0"}}, "No activity"),
+          calDayData && calDayData.planEntries.map(function(e,i){
+            return /*#__PURE__*/React.createElement("div", {key:i,style:{padding:"10px 12px",background:T.glass,borderRadius:10,marginBottom:8}},
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:13,fontWeight:700,color:T.text}}, e.w.name),
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:"#4ecdc4"}}, e.pct+"% complete")
+            );
+          }),
+          calDayData && calDayData.freeEntries.map(function(f,i){
+            return /*#__PURE__*/React.createElement("div", {key:"f"+i,style:{padding:"10px 12px",background:T.glass,borderRadius:10,marginBottom:8,display:"flex",gap:10,alignItems:"center"}},
+              /*#__PURE__*/React.createElement("span", {style:{fontSize:18}}, f.emoji||"\uD83C\uDFC3"),
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:13,fontWeight:700,color:T.text}}, f.label)
+            );
+          })
+        )
+      )
+    ),
+
+    // ── STRETCH TAB ──────────────────────────────────────────────────────────
+    tab==="stretch" && /*#__PURE__*/React.createElement("div", {style:{padding:"0 16px"}},
+      /*#__PURE__*/React.createElement("div", {style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}},
+        [{icon:"\uD83E\uDDD8",value:stretchStreak+"d",label:"STREAK"},{icon:"\uD83D\uDCC5",value:String(stretchDays.size),label:"TOTAL DAYS"}].map(function(s,i){
+          return /*#__PURE__*/React.createElement("div", {key:i,style:{background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:14,padding:"14px",textAlign:"center"}},
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:22,marginBottom:4}}, s.icon),
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:22,fontWeight:800,color:"#b794f4"}}, s.value),
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:8,color:T.textSub,marginTop:3,letterSpacing:1}}, s.label)
+          );
+        })
+      ),
+      /*#__PURE__*/React.createElement("div", {style:{background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:16,padding:14}},
+        /*#__PURE__*/React.createElement(MonthCalendar, {year:sCalYear,month:sCalMonth,completedDates:stretchDays,freeDates:new Set(),accent:"#b794f4",T:T})
+      )
+    ),
+
+    // ── RECORDS TAB ──────────────────────────────────────────────────────────
+    tab==="prs" && /*#__PURE__*/React.createElement("div", {style:{padding:"0 16px"}},
+      (!allPRs || allPRs.length===0)
+        ? /*#__PURE__*/React.createElement("div", {style:{textAlign:"center",padding:"40px 0",color:T.textSub,fontFamily:"'DM Mono', monospace",fontSize:12}}, "No PRs yet. Log workouts to set records!")
+        : (allPRs||[]).map(function(pr){
+            return /*#__PURE__*/React.createElement("div", {key:pr.name,style:{background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:12,padding:"12px 14px",marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center"}},
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:13,fontWeight:700,color:T.text}}, pr.name),
+              /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:12,color:"#ffd93d",fontWeight:700}}, pr.weight+" lbs")
+            );
+          })
+    ),
+
+    // ── BADGES TAB ───────────────────────────────────────────────────────────
+    tab==="badges" && /*#__PURE__*/React.createElement("div", {style:{padding:"0 16px"}},
+      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:T.textSub,letterSpacing:2,marginBottom:14}},
+        (function(){ var n=BADGE_DEFS.filter(function(b){try{return b.check(logs,workouts,completedDates,freeLogs,stretchDays);}catch(e){return false;}}).length; return n+" / "+BADGE_DEFS.length+" EARNED"; })()
+      ),
+      /*#__PURE__*/React.createElement("div", {style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},
+        BADGE_DEFS.map(function(b){
+          var earned=(function(){try{return b.check(logs,workouts,completedDates,freeLogs,stretchDays);}catch(e){return false;}})();
           return /*#__PURE__*/React.createElement("div", {key:b.id,
-            style:{
-              background: earned ? "linear-gradient(135deg,rgba(255,217,61,0.15),rgba(255,217,61,0.05))" : T.glass,
-              border: "1px solid " + (earned ? "rgba(255,217,61,0.5)" : T.glassBorder),
-              borderRadius:16, padding:"16px 10px", textAlign:"center",
-              position:"relative", overflow:"hidden",
-              opacity: earned ? 1 : 0.4
-            }
+            style:{background:earned?"rgba(78,205,196,0.08)":T.glass,
+                   border:"2px solid "+(earned?"#4ecdc4":T.glassBorder),
+                   borderRadius:16,padding:"20px 14px",textAlign:"center",
+                   display:"flex",flexDirection:"column",alignItems:"center",gap:6}
           },
-            earned && /*#__PURE__*/React.createElement("div", {style:{position:"absolute",top:6,right:7,fontSize:7,fontFamily:"'DM Mono', monospace",color:"#ffd93d",fontWeight:700,letterSpacing:1}}, "EARNED"),
-            /*#__PURE__*/React.createElement("div", {style:{fontSize:30,marginBottom:8,filter:earned?"none":"grayscale(1)"}}, b.emoji),
-            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:12,fontWeight:800,color:earned?"#ffd93d":T.text,marginBottom:3,lineHeight:1.2}}, b.title),
-            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:8,color:T.textSub,lineHeight:1.4}}, b.desc),
-            earned && /*#__PURE__*/React.createElement("div", {style:{marginTop:8,height:2,background:"linear-gradient(90deg,transparent,#ffd93d,transparent)",borderRadius:1}})
+            /*#__PURE__*/React.createElement("div", {style:{fontSize:36,lineHeight:1,marginBottom:4,filter:earned?"none":"grayscale(1) opacity(0.4)"}}, b.emoji),
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:14,fontWeight:800,color:earned?"#4ecdc4":T.textSub,lineHeight:1.2}}, b.title),
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:T.textSub,lineHeight:1.4,textAlign:"center"}}, b.desc),
+            earned && /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,fontWeight:700,color:"#4ecdc4",letterSpacing:1,marginTop:2}}, "EARNED")
           );
         })
       )
     ),
-    tab === "photos" && /*#__PURE__*/React.createElement(PhotosTab, {T:T, dark:dark})
-  )));
+    
+    // ── PHOTOS TAB ───────────────────────────────────────────────────────────
+    tab==="photos" && /*#__PURE__*/React.createElement("div", {style:{padding:"0 16px"}},
+      /*#__PURE__*/React.createElement(PhotosTab, {T:T, dark:dark})
+    )
+  );
 }
 
-// ─── Rest Timer ────────────────────────────────────────────────────────────────
-const REST_PRESETS = [30, 45, 60, 90];
 function RestTimerSheet({open, onClose, initialTarget, accent, T}) {
   const [target, setTarget] = useState(initialTarget || 90);
   const [elapsed, setElapsed] = useState(0);
