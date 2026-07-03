@@ -7635,15 +7635,34 @@ function StatsView({
       /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:18,fontWeight:800,color:T.text,flex:1}},"Progress Photos"),
       /*#__PURE__*/React.createElement("label",{style:{padding:"8px 14px",borderRadius:12,background:"#4ecdc4",color:"#0d0d14",fontSize:11,fontWeight:700,fontFamily:"'DM Mono', monospace",cursor:"pointer"}},
         "+ Add",
-        /*#__PURE__*/React.createElement("input",{type:"file",accept:"image/*",style:{display:"none"},
+        /*#__PURE__*/React.createElement("input",{type:"file",accept:"image/*",multiple:true,style:{display:"none"},
           onChange:function(e){
-            var file=e.target.files&&e.target.files[0]; if(!file)return;
-            var reader=new FileReader();
-            reader.onload=function(ev){
-              var newPhoto={id:Date.now(),date:new Date().toISOString().slice(0,10),src:ev.target.result};
-              savePhotos([newPhoto].concat(photos));
-            };
-            reader.readAsDataURL(file);
+            var files=Array.from(e.target.files||[]); if(!files.length)return;
+            var newPhotos=[];
+            var processed=0;
+            files.forEach(function(file,fi){
+              var reader=new FileReader();
+              reader.onload=function(ev){
+                // Compress image using canvas
+                var img=new Image();
+                img.onload=function(){
+                  var canvas=document.createElement("canvas");
+                  var MAX=800;
+                  var w=img.width,h=img.height;
+                  if(w>MAX||h>MAX){if(w>h){h=Math.round(h*MAX/w);w=MAX;}else{w=Math.round(w*MAX/h);h=MAX;}}
+                  canvas.width=w; canvas.height=h;
+                  canvas.getContext("2d").drawImage(img,0,0,w,h);
+                  var compressed=canvas.toDataURL("image/jpeg",0.7);
+                  newPhotos.push({id:Date.now()+fi,date:new Date().toISOString().slice(0,10),src:compressed});
+                  processed++;
+                  if(processed===files.length){
+                    savePhotos(newPhotos.concat(photos));
+                  }
+                };
+                img.src=ev.target.result;
+              };
+              reader.readAsDataURL(file);
+            });
           }
         })
       )
