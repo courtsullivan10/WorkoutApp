@@ -1708,8 +1708,7 @@ function getAllTimePRs(logs, workouts) {
 }
 function getCompletedDates(logs, freeLogs = []) {
   const fromLogs = Object.entries(logs).filter(([, log]) => Object.values(log.checked || {}).some(Boolean) || !!log.startedAt || !!log.duration || !!log.note).map(([k]) => k.split("-").slice(0, 3).join("-"));
-  const fromFree = freeLogs.map(f => f.date);
-  return new Set([...fromLogs, ...fromFree]);
+  return new Set(fromLogs);
 }
 function getPlanDates(logs) {
   var dates = Object.entries(logs).filter(function(e){ return Object.values(e[1].checked||{}).some(Boolean)||!!e[1].startedAt||!!e[1].duration||!!e[1].note; }).map(function(e){ return e[0].split("-").slice(0,3).join("-"); });
