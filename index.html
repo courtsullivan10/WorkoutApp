@@ -2006,6 +2006,18 @@ const STRETCH_DATA = {
         cue: "High and slow. Warms hip flexors for Mountain Climbers.",
         video: "https://www.youtube.com/results?search_query=hip+flexor+march+warm+up"
       }]
+    },
+    "general": {
+      title: "Full Body Dynamic Warm-Up",
+      note: "5–8 min before any workout.",
+      moves: [
+        { name: "Arm Circles", reps: "20 each direction", cue: "Big slow circles. Warms shoulders." },
+        { name: "Hip Circles", reps: "10 each side", cue: "Hands on hips, draw big circles. Loosens hips." },
+        { name: "Leg Swings", reps: "12 each leg", cue: "Hold a wall, swing leg forward and back." },
+        { name: "Worlds Greatest Stretch", reps: "5 each side", cue: "Lunge, elbow to floor, rotate arm up." },
+        { name: "Inchworm", reps: "6 reps", cue: "Walk hands to plank, walk feet in." },
+        { name: "Jumping Jacks", reps: "30 reps", cue: "Elevate heart rate before loading." }
+      ]
     }
   },
   // Static cool-down stretches per workout day
@@ -2214,9 +2226,21 @@ const STRETCH_DATA = {
         cue: "Both knees pulled to chest, rock side to side. Lower back massage.",
         video: "https://www.youtube.com/results?search_query=supine+knee+hug+stretch"
       }]
+    },
+    "general": {
+      title: "Full Body Cool-Down Stretch",
+      note: "5-10 min after any workout. Hold each 30-60s.",
+      moves: [
+        { name: "Standing Quad Stretch", reps: "30s each leg", cue: "Hold ankle behind, knees together." },
+        { name: "Standing Hamstring Stretch", reps: "30s each leg", cue: "Hinge at hips, soft knee, reach toward foot." },
+        { name: "Cross-Body Shoulder Stretch", reps: "30s each arm", cue: "Pull arm across chest. Releases rear delts." },
+        { name: "Chest Doorway Stretch", reps: "45s", cue: "Arms at 90 degrees, lean into doorframe." },
+        { name: "Hip Flexor Kneeling Stretch", reps: "45s each side", cue: "Lunge, back knee down, tuck pelvis." },
+        { name: "Seated Spinal Twist", reps: "30s each side", cue: "Cross one leg, rotate toward it." },
+        { name: "Childs Pose", reps: "60s", cue: "Arms out, sink hips to heels. Full spine release." }
+      ]
     }
-  },
-  // Flexibility routines (standalone, not tied to a workout day)
+  },  // Flexibility routines (standalone, not tied to a workout day)
   flexibility: [{
     id: "f1",
     title: "Full Body Flexibility",
@@ -2378,119 +2402,97 @@ const STRETCH_DATA = {
   }],
   // Splits progression program
   splits: {
-    overview: "The splits require consistent work on hamstrings, hip flexors, and inner thighs. Expect 3–6 months of dedicated practice. Do this routine 5–6 days per week for best results — flexibility responds to frequency more than intensity.",
-    phases: [{
-      phase: 1,
-      title: "Foundation",
-      weeks: "Weeks 1–4",
-      goal: "Build baseline flexibility. Nothing should be painful — only a deep stretch sensation.",
-      moves: [{
-        name: "Standing Forward Fold",
-        hold: "60 sec",
-        sets: 3,
-        cue: "Bend knees slightly if needed. Goal: hands touch floor.",
-        video: "https://www.youtube.com/results?search_query=standing+forward+fold+splits+training"
-      }, {
-        name: "Kneeling Hip Flexor Stretch",
-        hold: "60 sec each side",
-        sets: 3,
-        cue: "Back knee down, push hips forward and down. This is your most important stretch.",
-        video: "https://www.youtube.com/results?search_query=kneeling+hip+flexor+stretch+splits"
-      }, {
-        name: "Butterfly Stretch",
-        hold: "60 sec",
-        sets: 2,
-        cue: "Lean forward from hips. Inner thigh foundation.",
-        video: "https://www.youtube.com/results?search_query=butterfly+stretch+splits"
-      }, {
-        name: "Seated Straddle",
-        hold: "60 sec",
-        sets: 2,
-        cue: "Legs wide, fold forward. Start with knees bent if needed.",
-        video: "https://www.youtube.com/results?search_query=seated+straddle+stretch"
-      }, {
-        name: "Half Split",
-        hold: "60 sec each side",
-        sets: 3,
-        cue: "Back knee down, hinge over straight leg. Direct hamstring work.",
-        video: "https://www.youtube.com/results?search_query=half+split+stretch+tutorial"
-      }]
-    }, {
-      phase: 2,
-      title: "Progressive Loading",
-      weeks: "Weeks 5–10",
-      goal: "Increase depth week by week. Use props (books, blocks, pillow) to support at your limit.",
-      moves: [{
-        name: "Low Lunge with Hip Drop",
-        hold: "90 sec each side",
-        sets: 3,
-        cue: "Front foot flat, drop back hip toward floor. Getting into split territory.",
-        video: "https://www.youtube.com/results?search_query=low+lunge+hip+flexor+deep+stretch"
-      }, {
-        name: "Elevated Half Split",
-        hold: "90 sec each side",
-        sets: 3,
-        cue: "Prop front heel on step or chair. Increases hamstring stretch angle.",
-        video: "https://www.youtube.com/results?search_query=elevated+half+split+stretch"
-      }, {
-        name: "Frog Stretch (deep)",
-        hold: "2 min",
-        sets: 2,
-        cue: "Forearms on floor, knees as wide as possible. Inner thigh and groin depth.",
-        video: "https://www.youtube.com/results?search_query=deep+frog+stretch+splits"
-      }, {
-        name: "Straddle Forward Fold",
-        hold: "90 sec",
-        sets: 2,
-        cue: "Legs wide, walk hands forward on floor. Middle splits prep.",
-        video: "https://www.youtube.com/results?search_query=straddle+forward+fold+splits"
-      }, {
-        name: "Assisted Split (with props)",
-        hold: "60–90 sec each side",
-        sets: 3,
-        cue: "Use a block or pillow under your front thigh. Go only as low as you can hold without pain.",
-        video: "https://www.youtube.com/results?search_query=assisted+splits+tutorial+beginners"
-      }]
-    }, {
-      phase: 3,
-      title: "Full Split Training",
-      weeks: "Weeks 11–24+",
-      goal: "Achieve and hold the full split. Consistency is everything at this stage.",
-      moves: [{
-        name: "Assisted Front Split",
-        hold: "2 min each side",
-        sets: 3,
-        cue: "Prop under front thigh, lower each session. Track your prop height — celebrate each inch.",
-        video: "https://www.youtube.com/results?search_query=front+splits+training"
-      }, {
-        name: "Middle Split (straddle)",
-        hold: "2 min",
-        sets: 3,
-        cue: "Feet against a wall for guidance. Slow weekly progress.",
-        video: "https://www.youtube.com/results?search_query=middle+splits+training"
-      }, {
-        name: "PNF Hamstring Stretch",
-        hold: "Contract 10 sec, relax 30 sec",
-        sets: 4,
-        cue: "Resist against a strap or wall, then release deeper. Most effective technique for splits.",
-        video: "https://www.youtube.com/results?search_query=pnf+hamstring+stretch+splits"
-      }, {
-        name: "Hip Flexor Couch Stretch",
-        hold: "2 min each side",
-        sets: 3,
-        cue: "Foot against wall behind you, knee on floor. Deep psoas and quad release.",
-        video: "https://www.youtube.com/results?search_query=couch+stretch+hip+flexor"
-      }, {
-        name: "Full Split Hold",
-        hold: "Hold as long as comfortable",
-        sets: "As many as possible",
-        cue: "Use blocks if needed. Every millimetre counts. Film yourself periodically to see progress.",
-        video: "https://www.youtube.com/results?search_query=how+to+do+the+splits+tutorial"
-      }]
-    }],
-    tips: ["🌡️ Always stretch warm — after a workout or hot shower gives 30–40% better results", "⏱️ Frequency beats duration — 10 min daily beats 60 min once a week", "📸 Take a photo every 2 weeks from the same angle to track progress", "😮‍💨 Breathe into every stretch — exhale and sink deeper on each breath out", "🚫 Never bounce in a stretch — slow, sustained pressure is how flexibility grows", "💤 Your best gains happen during sleep — your body adapts overnight"]
+    programs: [
+      { id: "standard", title: "Standard", subtitle: "3-6 months", emoji: "\uD83C\uDF31",
+        overview: "The classic approach. 5-6 days per week, consistent practice. Full splits in 3-6 months from zero.",
+        phases: [
+          { phase: 1, title: "Foundation", weeks: "Weeks 1-4", goal: "Build baseline flexibility. Only a deep stretch sensation — no pain.",
+            moves: [
+              { name: "Standing Forward Fold", hold: "60 sec", sets: 3, cue: "Bend knees slightly if needed. Goal: hands touch floor.", video: "https://www.youtube.com/results?search_query=standing+forward+fold+splits+training" },
+              { name: "Kneeling Hip Flexor Stretch", hold: "60 sec each side", sets: 3, cue: "Back knee down, push hips forward and down. Your most important stretch.", video: "https://www.youtube.com/results?search_query=kneeling+hip+flexor+stretch+splits" },
+              { name: "Butterfly Stretch", hold: "60 sec", sets: 2, cue: "Lean forward from hips. Inner thigh foundation.", video: "https://www.youtube.com/results?search_query=butterfly+stretch+splits" },
+              { name: "Seated Straddle", hold: "60 sec", sets: 2, cue: "Legs wide, fold forward. Knees bent is fine to start.", video: "https://www.youtube.com/results?search_query=seated+straddle+stretch" },
+              { name: "Half Split", hold: "60 sec each side", sets: 3, cue: "Back knee down, hinge over straight leg. Direct hamstring work.", video: "https://www.youtube.com/results?search_query=half+split+stretch+tutorial" }
+            ]
+          },
+          { phase: 2, title: "Progressive Loading", weeks: "Weeks 5-12", goal: "Increase depth week by week using props (books, blocks, pillow).",
+            moves: [
+              { name: "Low Lunge with Hip Drop", hold: "90 sec each side", sets: 3, cue: "Front foot flat, drop back hip toward floor.", video: "https://www.youtube.com/results?search_query=low+lunge+hip+flexor+deep+stretch" },
+              { name: "Elevated Half Split", hold: "90 sec each side", sets: 3, cue: "Prop front heel on step or chair. Increases hamstring angle.", video: "https://www.youtube.com/results?search_query=elevated+half+split+stretch" },
+              { name: "Frog Stretch", hold: "2 min", sets: 2, cue: "Forearms on floor, knees as wide as possible.", video: "https://www.youtube.com/results?search_query=deep+frog+stretch+splits" },
+              { name: "Straddle Forward Fold", hold: "90 sec", sets: 2, cue: "Legs wide, walk hands forward. Middle splits prep.", video: "https://www.youtube.com/results?search_query=straddle+forward+fold+splits" },
+              { name: "Assisted Split (with props)", hold: "60-90 sec each side", sets: 3, cue: "Block under front thigh. Go only as low as you can hold without pain.", video: "https://www.youtube.com/results?search_query=assisted+splits+tutorial+beginners" }
+            ]
+          },
+          { phase: 3, title: "Full Split Training", weeks: "Weeks 13-24+", goal: "Achieve and hold the full split. Consistency is everything.",
+            moves: [
+              { name: "Assisted Front Split", hold: "2 min each side", sets: 3, cue: "Prop under front thigh, lower each session. Track your prop height.", video: "https://www.youtube.com/results?search_query=front+splits+training" },
+              { name: "Middle Split", hold: "2 min", sets: 3, cue: "Feet against wall for guidance. Slow weekly progress.", video: "https://www.youtube.com/results?search_query=middle+splits+training" },
+              { name: "PNF Hamstring Stretch", hold: "Contract 10s, relax 30s", sets: 4, cue: "Resist against strap or wall, release deeper. Most effective technique.", video: "https://www.youtube.com/results?search_query=pnf+hamstring+stretch+splits" },
+              { name: "Couch Stretch", hold: "2 min each side", sets: 3, cue: "Foot against wall behind, knee on floor. Deep psoas and quad release.", video: "https://www.youtube.com/results?search_query=couch+stretch+hip+flexor" },
+              { name: "Full Split Hold", hold: "Hold as long as comfortable", sets: "Max", cue: "Use blocks if needed. Film yourself every 2 weeks.", video: "https://www.youtube.com/results?search_query=how+to+do+the+splits+tutorial" }
+            ]
+          }
+        ],
+        tips: ["\uD83C\uDF21 Stretch warm — hot shower first", "\u23F1 10 min daily beats 60 min once a week", "\uD83D\uDCF8 Photo every 2 weeks to track progress", "\uD83D\uDE2E\u200D\uD83D\uDCA8 Exhale and sink deeper each breath", "\uD83D\uDEAB Never bounce — slow sustained pressure"]
+      },
+      { id: "accelerated", title: "Accelerated", subtitle: "6-12 weeks", emoji: "\u26A1",
+        overview: "Aggressive but safe. 2 sessions per day + PNF on every stretch. Best if you already have some baseline flexibility.",
+        phases: [
+          { phase: 1, title: "PNF Foundations", weeks: "Weeks 1-2", goal: "Learn PNF: contract the muscle hard for 8s, fully relax, sink deeper. Repeat 4x per stretch.",
+            moves: [
+              { name: "PNF Hip Flexor (kneeling)", hold: "Contract 8s, relax 20s x4", sets: 3, cue: "In lunge: squeeze glute into floor for 8s, release and push hips deeper.", video: "https://www.youtube.com/results?search_query=pnf+hip+flexor+stretch" },
+              { name: "PNF Hamstring (standing)", hold: "Contract 8s, relax 20s x4", sets: 3, cue: "Strap around foot, push foot into strap for 8s, release and pull higher.", video: "https://www.youtube.com/results?search_query=pnf+hamstring+stretch+how+to" },
+              { name: "PNF Butterfly", hold: "Contract 8s, relax 20s x4", sets: 2, cue: "Push knees UP against hands for 8s, release and press knees to floor.", video: "https://www.youtube.com/results?search_query=pnf+inner+thigh+stretch" },
+              { name: "Half Split + PNF", hold: "Contract 8s, relax 30s x4", sets: 3, cue: "Press straight leg into floor for 8s, release and fold deeper.", video: "https://www.youtube.com/results?search_query=pnf+half+split" }
+            ]
+          },
+          { phase: 2, title: "Rapid Depth Building", weeks: "Weeks 3-6", goal: "Loaded stretching plus PNF every session, twice daily.",
+            moves: [
+              { name: "Weighted Forward Fold", hold: "90 sec", sets: 3, cue: "Hold a light weight plate to pull you deeper. Game changer for hamstrings.", video: "https://www.youtube.com/results?search_query=weighted+forward+fold+flexibility" },
+              { name: "PNF Frog Stretch", hold: "Contract 8s, relax 30s x4", sets: 2, cue: "Squeeze knees toward each other for 8s, release wider.", video: "https://www.youtube.com/results?search_query=pnf+frog+stretch+groin" },
+              { name: "Elevated Split + PNF", hold: "Contract 8s, relax 30s x5", sets: 3, cue: "Front foot on step. Squeeze quad into step for 8s, release lower.", video: "https://www.youtube.com/results?search_query=elevated+split+stretch+pnf" },
+              { name: "Loaded Straddle Fold", hold: "2 min", sets: 3, cue: "Weight plate on back pushes you deeper. Forearms on floor target.", video: "https://www.youtube.com/results?search_query=loaded+straddle+stretch" },
+              { name: "Couch Stretch + PNF", hold: "Contract 8s, relax 30s x4", sets: 3, cue: "Push foot into wall for 8s, release and tuck pelvis deeper.", video: "https://www.youtube.com/results?search_query=pnf+couch+stretch" }
+            ]
+          },
+          { phase: 3, title: "Split Acquisition", weeks: "Weeks 7-12", goal: "Close the last gap. The final inches are always the hardest — stay consistent.",
+            moves: [
+              { name: "PNF Front Split", hold: "Contract 10s, relax 40s x5", sets: 4, cue: "Push front heel AND back knee into floor simultaneously for 10s, then release deeper.", video: "https://www.youtube.com/results?search_query=pnf+front+splits" },
+              { name: "PNF Middle Split", hold: "Contract 10s, relax 40s x5", sets: 3, cue: "Squeeze heels toward each other for 10s, release wider.", video: "https://www.youtube.com/results?search_query=pnf+middle+splits+technique" },
+              { name: "Overshoot Stretch", hold: "60 sec each side", sets: 3, cue: "Front foot elevated higher than your split. Trains beyond current range. Use with care.", video: "https://www.youtube.com/results?search_query=oversplit+training+safely" },
+              { name: "Full Split Hold", hold: "Hold max comfortable", sets: "Max", cue: "Reduce prop height weekly. Film every week.", video: "https://www.youtube.com/results?search_query=full+splits+training+tips" }
+            ]
+          }
+        ],
+        tips: ["\u26A1 2 sessions/day — morning and evening, even 10 min", "\uD83E\uDDE0 PNF: squeeze 8-10s, release and sink deeper, repeat 4-5x", "\uD83C\uDF21 Must be warm — hot shower or 5 min cardio first", "\uD83D\uDCF8 Film weekly — progress is clear week to week", "\uD83D\uDE34 Sleep matters — flexibility deepens overnight"]
+      },
+      { id: "2xdaily", title: "2x Daily", subtitle: "Fastest progress", emoji: "\uD83D\uDD25",
+        overview: "Two short daily sessions (10-15 min AM + 10-15 min PM). Morning = light activation. Evening = deep work. 3-4x faster than once-daily.",
+        phases: [
+          { phase: 1, title: "Morning Routine", weeks: "Every day", goal: "Gentle activation. Always after getting up — never cold. 10-15 min.",
+            moves: [
+              { name: "Hip Flexor Lunge (light)", hold: "45 sec each side", sets: 2, cue: "After 2 min walking. Light — just open the hip, do not push depth.", video: "https://www.youtube.com/results?search_query=morning+hip+flexor+stretch" },
+              { name: "Standing Forward Fold", hold: "45 sec", sets: 2, cue: "Knees bent is fine. Hang and breathe.", video: "https://www.youtube.com/results?search_query=morning+forward+fold+routine" },
+              { name: "Butterfly Stretch", hold: "45 sec", sets: 2, cue: "Sit tall, lean slightly forward. Gentle inner thigh activation.", video: "https://www.youtube.com/results?search_query=morning+butterfly+stretch" },
+              { name: "Cat-Cow + Spinal Twist", hold: "30 sec each", sets: 2, cue: "Spine mobility first thing. Prepares for deeper evening work.", video: "https://www.youtube.com/results?search_query=cat+cow+spinal+twist+morning" }
+            ]
+          },
+          { phase: 2, title: "Evening Routine", weeks: "Every day", goal: "Deep work after workout, hot shower, or 5 min warm-up. This is where real gains happen.",
+            moves: [
+              { name: "PNF Hip Flexor", hold: "Contract 8s, relax 25s x4", sets: 3, cue: "Contract-relax every round. Evening is your deepest and most pliable.", video: "https://www.youtube.com/results?search_query=pnf+hip+flexor+evening" },
+              { name: "PNF Hamstring", hold: "Contract 8s, relax 25s x4", sets: 3, cue: "Strap or wall. Push into resistance, release, go deeper. 4 rounds per side.", video: "https://www.youtube.com/results?search_query=pnf+hamstring+stretch+evening" },
+              { name: "Deep Frog Stretch", hold: "2 min", sets: 2, cue: "Forearms on floor. Breathe and relax into it.", video: "https://www.youtube.com/results?search_query=deep+frog+stretch+evening" },
+              { name: "Assisted Split + PNF", hold: "Contract 10s, relax 30s x5", sets: 3, cue: "Your main split work. Use a prop, go to limit, apply PNF. Lower prop weekly.", video: "https://www.youtube.com/results?search_query=assisted+front+split+pnf" },
+              { name: "Long Hold Split or Straddle", hold: "3 min", sets: 2, cue: "Passive hold at end. Let gravity do the work. This is the closer.", video: "https://www.youtube.com/results?search_query=passive+split+hold+long" }
+            ]
+          }
+        ],
+        tips: ["\uD83C\uDF05 Morning = light. Evening = deep", "\uD83D\uDCA7 Stay hydrated — dehydration stiffens connective tissue", "\u23F0 Never miss two sessions in a row", "\uD83D\uDCA4 Flexibility deepens during sleep — evening feeds overnight recovery", "\uD83D\uDD25 2x daily = 3-4x the results, not 2x the effort"]
+      }
+    ]
   }
-};
+  }
 
 // Active Recovery Programs
 const RECOVERY_PROGRAMS = {
@@ -2622,6 +2624,78 @@ const RECOVERY_PROGRAMS = {
 };
 
 // ─── Stretch View ──────────────────────────────────────────────────────────────
+
+function SplitsView({T, dark}) {
+  var [splitProgram, setSplitProgram] = useState("standard");
+  var [expandedPhase, setExpandedPhase] = useState(0);
+  var programs = (STRETCH_DATA.splits && STRETCH_DATA.splits.programs) || [];
+  var prog = programs.find(function(p){return p.id===splitProgram;}) || programs[0];
+
+  return /*#__PURE__*/React.createElement("div", null,
+    /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:6,marginBottom:14}},
+      programs.map(function(p) {
+        var active = splitProgram === p.id;
+        return /*#__PURE__*/React.createElement("button", {key:p.id,
+          onClick:function(){setSplitProgram(p.id);setExpandedPhase(0);},
+          style:{flex:1,padding:"8px 4px",borderRadius:12,
+                 background:active?"rgba(183,148,244,0.15)":T.glass,
+                 border:"1px solid "+(active?"#b794f4":T.glassBorder),
+                 color:active?"#b794f4":T.textSub,cursor:"pointer",textAlign:"center"}
+        },
+          /*#__PURE__*/React.createElement("div",{style:{fontSize:14}},p.emoji),
+          /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:10,fontWeight:700,marginTop:2}},p.title),
+          /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:8,color:active?"#b794f4":T.textSub,marginTop:1}},p.subtitle)
+        );
+      })
+    ),
+    prog && /*#__PURE__*/React.createElement("div", null,
+      /*#__PURE__*/React.createElement("div",{style:{fontSize:10,color:T.textSub,fontFamily:"'DM Mono', monospace",lineHeight:1.6,marginBottom:12}},prog.overview),
+      /*#__PURE__*/React.createElement("div",{style:{background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:12,padding:"10px 14px",marginBottom:12}},
+        /*#__PURE__*/React.createElement("div",{style:{fontSize:9,letterSpacing:2,textTransform:"uppercase",color:T.textSub,fontFamily:"'DM Mono', monospace",marginBottom:6}},"Key Rules"),
+        (prog.tips||[]).map(function(tip,i){
+          return /*#__PURE__*/React.createElement("div",{key:i,style:{fontSize:10,color:T.text,fontFamily:"'DM Mono', monospace",lineHeight:1.6,marginBottom:3}},tip);
+        })
+      ),
+      (prog.phases||[]).map(function(phase,pi){
+        var open = expandedPhase === pi;
+        return /*#__PURE__*/React.createElement("div",{key:pi,
+          style:{background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:12,marginBottom:8,overflow:"hidden"}
+        },
+          /*#__PURE__*/React.createElement("div",{
+            onClick:function(){setExpandedPhase(open?-1:pi);},
+            style:{padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"}
+          },
+            /*#__PURE__*/React.createElement("div",null,
+              /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:13,fontWeight:700,color:T.text}},phase.title),
+              /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:"#b794f4",marginTop:2}},phase.weeks)
+            ),
+            /*#__PURE__*/React.createElement("span",{style:{color:T.textSub,fontSize:12}},open?"∧":"∨")
+          ),
+          open && /*#__PURE__*/React.createElement("div",{style:{padding:"0 14px 14px"}},
+            /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:T.textSub,lineHeight:1.5,marginBottom:10}},phase.goal),
+            (phase.moves||[]).map(function(move,mi){
+              return /*#__PURE__*/React.createElement("div",{key:mi,
+                style:{padding:"8px 0",borderTop:mi>0?"1px solid "+T.divider:"none"}
+              },
+                /*#__PURE__*/React.createElement("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:3}},
+                  /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:12,fontWeight:700,color:T.text,flex:1}},move.name),
+                  /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:"#b794f4",textAlign:"right",flexShrink:0,marginLeft:8}},
+                    typeof move.sets==="number"?move.sets+"×  ":"",move.hold)
+                ),
+                /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:9,color:T.textSub,lineHeight:1.5,marginBottom:move.video?3:0}},move.cue),
+                move.video && /*#__PURE__*/React.createElement("button",{
+                  onClick:function(){window.__openVideo&&window.__openVideo(move.video);},
+                  style:{fontSize:9,color:"#b794f4",background:"transparent",border:"none",cursor:"pointer",fontFamily:"'DM Mono', monospace",padding:0}
+                },"▶ Watch")
+              );
+            })
+          )
+        );
+      })
+    )
+  );
+}
+
 function StretchView({
   selDay,
   workouts,
@@ -3055,117 +3129,7 @@ function StretchView({
       marginBottom: 14,
       boxShadow: T.shadow
     }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 8,
-      letterSpacing: 3,
-      textTransform: "uppercase",
-      color: "#b794f4",
-      fontFamily: "'DM Mono', monospace",
-      marginBottom: 4
-    }
-  }, "\uD83E\uDD38 Your Goal: The Splits"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      lineHeight: 1.6
-    }
-  }, STRETCH_DATA.splits.overview)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: T.glass,
-      backdropFilter: "blur(8px)",
-      border: `1px solid ${T.glassBorder}`,
-      borderRadius: 12,
-      padding: "10px 14px",
-      marginBottom: 14,
-      boxShadow: T.shadow
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 9,
-      letterSpacing: 3,
-      textTransform: "uppercase",
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      marginBottom: 8
-    }
-  }, "Key Rules"), STRETCH_DATA.splits.tips.map((tip, i) => /*#__PURE__*/React.createElement("div", {
-    key: i,
-    style: {
-      fontSize: 10,
-      color: T.text,
-      fontFamily: "'DM Mono', monospace",
-      lineHeight: 1.6,
-      marginBottom: 4
-    }
-  }, tip))), STRETCH_DATA.splits.phases.map((phase, pi) => /*#__PURE__*/React.createElement("div", {
-    key: pi,
-    style: {
-      background: T.glass,
-      backdropFilter: "blur(8px)",
-      border: `1px solid ${T.glassBorder}`,
-      borderRadius: 14,
-      marginBottom: 10,
-      overflow: "hidden",
-      boxShadow: T.shadow
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setExpandedPhase(expandedPhase === pi ? null : pi),
-    style: {
-      width: "100%",
-      background: "transparent",
-      border: "none",
-      cursor: "pointer",
-      padding: "12px 14px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      textAlign: "left"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'Outfit', sans-serif",
-      fontSize: 14,
-      fontWeight: 700,
-      color: T.text
-    }
-  }, "Phase ", phase.phase, ": ", phase.title), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontFamily: "'DM Mono', monospace",
-      fontSize: 9,
-      color: "#b794f4",
-      marginTop: 2
-    }
-  }, phase.weeks)), /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: T.textSub,
-      fontSize: 14
-    }
-  }, expandedPhase === pi ? "▲" : "▼")), expandedPhase === pi && /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "0 14px 14px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: 10,
-      color: T.textSub,
-      fontFamily: "'DM Mono', monospace",
-      lineHeight: 1.5,
-      marginBottom: 12,
-      paddingTop: 4,
-      borderTop: `1px solid ${T.divider}`
-    }
-  }, "\uD83C\uDFAF Goal: ", phase.goal), phase.moves.map((m, mi) => /*#__PURE__*/React.createElement(MoveCard, {
-    key: mi,
-    move: m,
-    accent: "#b794f4",
-    logKey: `splits-phase${phase.phase}`,
-    moveIdx: mi
-  })))))));
+  }, /*#__PURE__*/React.createElement(SplitsView, {T:T, dark:dark}))));
 }
 
 // ─── Recovery View (expanded active recovery day) ──────────────────────────────
@@ -4960,42 +4924,43 @@ function ExerciseLibraryView({
     onClick:e=>e.stopPropagation(),
     style:{background:T.sheetBg,borderRadius:"24px 24px 0 0",width:"100%",maxWidth:540,border:"1px solid "+T.glassBorder,maxHeight:"88vh",overflowY:"auto",paddingBottom:40}
   },
-    /*#__PURE__*/React.createElement("div",{style:{padding:"14px 18px 12px",borderBottom:"1px solid "+T.divider,position:"sticky",top:0,background:T.sheetBg}},
-      /*#__PURE__*/React.createElement("div",{style:{width:36,height:4,background:T.glassBorder,borderRadius:2,margin:"0 auto 12px"}}),
-      /*#__PURE__*/React.createElement("div",{style:{display:"flex",alignItems:"center",gap:10}},
-        /*#__PURE__*/React.createElement("span",{style:{fontSize:28}}, previewWorkout.emoji),
-        /*#__PURE__*/React.createElement("div",{style:{flex:1}},
-          /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:18,fontWeight:800,color:T.text}}, previewWorkout.title),
-          /*#__PURE__*/React.createElement("div",{style:{fontSize:9,color:previewWorkout.tagColor,fontFamily:"'DM Mono', monospace",letterSpacing:2,marginTop:2}}, previewWorkout.tag+" · "+previewWorkout.duration+" · "+previewWorkout.difficulty)
-        )
-      )
+    /*#__PURE__*/React.createElement("div",{style:{padding:"18px 18px 14px",borderBottom:"1px solid "+T.divider}},
+      /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'Outfit', sans-serif",fontSize:18,fontWeight:800,color:T.text}}, previewWorkout.emoji+" "+previewWorkout.title),
+      /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:10,color:T.textSub,marginTop:4}}, previewWorkout.tag)
     ),
     /*#__PURE__*/React.createElement("div",{style:{padding:"14px 18px"}},
-      previewWorkout.rest && /*#__PURE__*/React.createElement("div",{style:{display:"inline-flex",alignItems:"center",gap:6,background:"rgba(78,205,196,0.1)",border:"1px solid rgba(78,205,196,0.25)",borderRadius:20,padding:"4px 12px",marginBottom:12}},
-        /*#__PURE__*/React.createElement("span",{style:{fontSize:12}},"⏱"),
-        /*#__PURE__*/React.createElement("span",{style:{fontSize:10,color:"#4ecdc4",fontFamily:"'DM Mono', monospace"}},"Rest: "+previewWorkout.rest)
-      ),
-      /*#__PURE__*/React.createElement("div",{style:{fontSize:11,color:T.textSub,fontFamily:"'DM Mono', monospace",marginBottom:14,lineHeight:1.6}}, previewWorkout.description),
-      [...(previewWorkout.exercises||[]),...(previewWorkout.core||[])].map((ex,i)=>
-        /*#__PURE__*/React.createElement("div",{key:i,style:{display:"flex",justifyContent:"space-between",fontSize:12,fontFamily:"'DM Mono', monospace",padding:"6px 0",borderBottom:"1px solid "+T.divider}},
-          /*#__PURE__*/React.createElement("span",{style:{color:T.text}}, ex.name+(ex.bodyweight?" 🔵":"")),
-          /*#__PURE__*/React.createElement("span",{style:{color:T.textSub}}, ex.sets+" × "+ex.reps)
-        )
-      ),
+      previewWorkout.description && /*#__PURE__*/React.createElement("div",{style:{fontSize:11,color:T.textSub,fontFamily:"'DM Mono', monospace",marginBottom:14,lineHeight:1.6}}, previewWorkout.description),
+      /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:9,letterSpacing:2,color:"#ff9f7f",marginBottom:6}},"\uD83D\uDD25 WARM-UP"),
+      (STRETCH_DATA.dynamic["general"]||{moves:[]}).moves.map(function(m,i){
+        return /*#__PURE__*/React.createElement("div",{key:"w"+i,style:{display:"flex",justifyContent:"space-between",fontSize:11,fontFamily:"'DM Mono', monospace",padding:"4px 0",borderBottom:"1px solid "+T.divider}},
+          /*#__PURE__*/React.createElement("span",{style:{color:T.text}},m.name),
+          /*#__PURE__*/React.createElement("span",{style:{color:T.textSub}},m.reps));
+      }),
+      /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:9,letterSpacing:2,color:T.textSub,marginTop:12,marginBottom:6}},"\uD83C\uDFCB EXERCISES"),
+      [...(previewWorkout.exercises||[]),...(previewWorkout.core||[])].map(function(ex,i){
+        return /*#__PURE__*/React.createElement("div",{key:"e"+i,style:{display:"flex",justifyContent:"space-between",fontSize:12,fontFamily:"'DM Mono', monospace",padding:"5px 0",borderBottom:"1px solid "+T.divider}},
+          /*#__PURE__*/React.createElement("span",{style:{color:T.text}},ex.name+(ex.bodyweight?" \uD83D\uDD35":"")),
+          /*#__PURE__*/React.createElement("span",{style:{color:T.textSub}},ex.sets+" \u00D7 "+ex.reps));
+      }),
+      /*#__PURE__*/React.createElement("div",{style:{fontFamily:"'DM Mono', monospace",fontSize:9,letterSpacing:2,color:"#b794f4",marginTop:12,marginBottom:6}},"\uD83E\uDDD8 COOL-DOWN"),
+      (STRETCH_DATA.static["general"]||{moves:[]}).moves.map(function(m,i){
+        return /*#__PURE__*/React.createElement("div",{key:"c"+i,style:{display:"flex",justifyContent:"space-between",fontSize:11,fontFamily:"'DM Mono', monospace",padding:"4px 0",borderBottom:"1px solid "+T.divider}},
+          /*#__PURE__*/React.createElement("span",{style:{color:T.text}},m.name),
+          /*#__PURE__*/React.createElement("span",{style:{color:T.textSub}},m.reps));
+      }),
       /*#__PURE__*/React.createElement("div",{style:{display:"flex",gap:10,marginTop:20}},
         /*#__PURE__*/React.createElement("button",{
-          onClick:()=>{ onDoWorkoutToday && onDoWorkoutToday(previewWorkout); setPreviewWorkout(null); },
-          style:{flex:1,padding:"13px",borderRadius:14,background:"linear-gradient(135deg,"+previewWorkout.tagColor+","+previewWorkout.tagColor+"cc)",border:"none",color:"#0d0d14",fontSize:13,fontWeight:700,fontFamily:"'Outfit', sans-serif",cursor:"pointer"}
-        },"⚡ Do Today"),
+          onClick:function(){onDoWorkoutToday&&onDoWorkoutToday(previewWorkout);setPreviewWorkout(null);},
+          style:{flex:1,padding:"13px",borderRadius:14,background:"linear-gradient(135deg,"+previewWorkout.tagColor+","+previewWorkout.tagColor+"99)",border:"none",color:"#0d0d14",fontFamily:"'Outfit', sans-serif",fontSize:14,fontWeight:800,cursor:"pointer"}
+        },"\u26A1 Do Today"),
         /*#__PURE__*/React.createElement("button",{
-          onClick:()=>{ onAddWorkoutToPlan && onAddWorkoutToPlan(previewWorkout); setPreviewWorkout(null); },
-          style:{flex:1,padding:"13px",borderRadius:14,background:T.glass,border:"1px solid "+T.glassBorder,color:T.text,fontSize:13,fontWeight:700,fontFamily:"'Outfit', sans-serif",cursor:"pointer"}
+          onClick:function(){onAddWorkoutToPlan&&onAddWorkoutToPlan(previewWorkout);setPreviewWorkout(null);},
+          style:{flex:1,padding:"13px",borderRadius:14,background:T.glass,border:"1px solid "+T.glassBorder,color:T.text,fontFamily:"'Outfit', sans-serif",fontSize:14,fontWeight:700,cursor:"pointer"}
         },"+ Add to Plan")
       )
     )
   )),
   /*#__PURE__*/React.createElement(AddToWorkoutPicker, {
-    open: !!addTarget, onClose: () => setAddTarget(null), exercise: addTarget,
     workouts: workouts, onAdd: onAddToWorkout,
     onCreateDay: ex => { addDay(ex); setAddTarget(null); }, T: T, dark: dark
   }),
@@ -6720,6 +6685,8 @@ function StatsView({
 function RestTimerSheet({open, onClose, initialTarget, accent, T}) {
   const [target, setTarget] = useState(initialTarget || 90);
   const [elapsed, setElapsed] = useState(0);
+  const [editingElapsed, setEditingElapsed] = useState(false);
+  const [manualElapsedMins, setManualElapsedMins] = useState("");
   const [running, setRunning] = useState(false);
   const [customInput, setCustomInput] = useState("");
   const [showCustom, setShowCustom] = useState(false);
@@ -7586,8 +7553,8 @@ function getSuggestedRestLabel(name) {
 function getSuggestedRest(name) {
   if (!name) return 90;
   const n = name.toLowerCase();
-  if (/squat|deadlift|bench|press|row|pull.up|chin.up|power clean/.test(n)) return 180;
-  if (/rdl|romanian|hip thrust|lunge/.test(n)) return 120;
+  if (/squat|deadlift|bench|press|row|pull.up|chin.up|power clean/.test(n)) return 120;
+  if (/rdl|romanian|hip thrust|lunge/.test(n)) return 90;
   if (/curl|extension|pushdown|raise|fly|kickback|crunch|plank|hold/.test(n)) return 60;
   return 90;
 }
@@ -7710,9 +7677,11 @@ function ExerciseSection({
   onToggleSet,
   onSaveWeight,
   onTogglePR,
+  onToggleBW,
   onSwapExercise,
   onOpenPanel,
-  onShowCue
+  onShowCue,
+  pregnancyMode
 }) {
   if (!exercises.length) return null;
   return /*#__PURE__*/React.createElement("div", {
@@ -7754,8 +7723,13 @@ function ExerciseSection({
       boxShadow: T.shadow
     }
   }, exercises.map((ex, ei) => {
-    const isBW = ex.bodyweight,
-      hasInfo = !!lookupExercise(ex.name);
+    const exKey = `${section}-${ei}`;
+    const bwOverride = !!(currentLog && currentLog.bw && currentLog.bw[exKey]);
+    const isBW = ex.bodyweight ? !bwOverride : bwOverride;
+    const hasInfo = !!lookupExercise(ex.name);
+    const pregFlag = pregnancyMode && pregnancyMode.enabled ? getPregnancyFlag(ex.name) : null;
+    const trimester = pregnancyMode && pregnancyMode.dueDate ? getTrimester(pregnancyMode.dueDate) : 1;
+    const flagActive = pregFlag && (pregFlag.flag === 'avoid' || (pregFlag.flag === 'avoid-t2' && trimester >= 2) || pregFlag.flag === 'discuss');
     return /*#__PURE__*/React.createElement("div", {
       key: ex.id || ei,
       style: {
@@ -7790,6 +7764,12 @@ function ExerciseSection({
         whiteSpace: "nowrap"
       }
     }, ex.name),
+    flagActive && /*#__PURE__*/React.createElement("div", {
+      style:{fontSize:9,fontFamily:"'DM Mono',monospace",marginTop:2,lineHeight:1.4,
+             color: pregFlag.flag==='avoid'||pregFlag.flag==='avoid-t2' ? "#fc8181" : "#f6ad55",
+             background: pregFlag.flag==='avoid'||pregFlag.flag==='avoid-t2' ? "rgba(252,129,129,0.1)" : "rgba(246,173,85,0.1)",
+             borderRadius:6,padding:"2px 6px",display:"inline-block"}
+    }, (pregFlag.flag==='avoid'||pregFlag.flag==='avoid-t2' ? "🚫 Avoid — " : "💬 Discuss — ") + pregFlag.msg),
     getSuggestedRestLabel(ex.name) && /*#__PURE__*/React.createElement("div", {
       style: {fontSize:8, color:"rgba(78,205,196,0.7)", fontFamily:"'DM Mono', monospace",
               letterSpacing:0.5, marginTop:1, whiteSpace:"nowrap"}
@@ -7945,49 +7925,67 @@ function FreeWorkoutSheet({
   open,
   onClose,
   onSave,
+  onSessionUpdate,
+  session,
   T,
   dark
 }) {
   const [selected, setSelected] = useState(null);
   const [phase, setPhase] = useState("pick"); // "pick" | "active" | "done"
+  const [freeCustomLabel, setFreeCustomLabel] = useState("");
   const [elapsed, setElapsed] = useState(0);
+  const [editingElapsed, setEditingElapsed] = useState(false);
+  const [manualElapsedMins, setManualElapsedMins] = useState("");
   const [note, setNote] = useState("");
   const ivl = useRef(null);
   useEffect(() => {
-    if (!open) {
-      setSelected(null);
-      setPhase("pick");
-      setElapsed(0);
-      setNote("");
+    if (open && session && session.type) {
+      setSelected(session.type);
+      setPhase("active");
+      setElapsed(session.elapsed || 0);
+      setNote(session.note || "");
+      setFreeCustomLabel(session.freeCustomLabel || "");
+    } else if (!open) {
+      // Don't reset - session persists via pill
     }
-  }, [open]);
+  }, [open, session]);
   useEffect(() => {
     if (phase === "active") {
-      ivl.current = setInterval(() => setElapsed(e => e + 1), 1000);
+      ivl.current = setInterval(() => setElapsed(e => {
+        const next = e + 1;
+        if (onSessionUpdate && selected) {
+          onSessionUpdate({type:selected, elapsed:next, note, freeCustomLabel, color: selected==="library"?(session&&session.color)||"#4ecdc4":(FREE_WORKOUT_TYPES.find(t=>t.id===selected)||{}).color, emoji: selected==="library"?(session&&session.emoji)||"\uD83C\uDFCB":(FREE_WORKOUT_TYPES.find(t=>t.id===selected)||{}).emoji, label: selected==="library"?(session&&session.label):undefined});
+        }
+        return next;
+      }), 1000);
     } else clearInterval(ivl.current);
     return () => clearInterval(ivl.current);
-  }, [phase]);
+  }, [phase, selected, note, freeCustomLabel]);
   function finish() {
     clearInterval(ivl.current);
     setPhase("done");
   }
   function save() {
-    const type = FREE_WORKOUT_TYPES.find(t => t.id === selected);
+    const isLibrary = selected === "library";
+    const isOther = selected === "other";
+    const typeObj = FREE_WORKOUT_TYPES.find(t => t.id === selected);
     onSave({
       id: rndId(),
       date: getTodayKey(),
       type: selected,
-      label: type.label,
-      emoji: type.emoji,
-      color: type.color,
+      label: isLibrary ? ((session&&session.label)||"Workout") : isOther && freeCustomLabel.trim() ? freeCustomLabel.trim() : (typeObj&&typeObj.label)||selected,
+      emoji: isLibrary ? ((session&&session.emoji)||"\uD83C\uDFCB") : (typeObj&&typeObj.emoji)||"\uD83D\uDCAA",
+      color: isLibrary ? ((session&&session.color)||"#4ecdc4") : isOther ? "#4ecdc4" : (typeObj&&typeObj.color)||"#4ecdc4",
       duration: elapsed,
       note,
-      startedAt: new Date().toISOString()
+      startedAt: (session&&session.startedAt) || new Date().toISOString()
     });
     onClose();
   }
   if (!open) return null;
-  const type = FREE_WORKOUT_TYPES.find(t => t.id === selected);
+  const type = selected === "library"
+    ? {label: (session&&session.label)||"Workout", emoji: (session&&session.emoji)||"\uD83C\uDFCB", color: (session&&session.color)||"#4ecdc4"}
+    : FREE_WORKOUT_TYPES.find(t => t.id === selected);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       position: "fixed",
@@ -8085,8 +8083,19 @@ function FreeWorkoutSheet({
       fontWeight: 700,
       color: selected === t.id ? t.color : T.text
     }
-  }, t.label)))), /*#__PURE__*/React.createElement("button", {
-    onClick: () => selected && setPhase("active"),
+  }, t.label)))),
+  selected === "other" && /*#__PURE__*/React.createElement("input", {
+    type: "text",
+    placeholder: "What are you doing?",
+    value: freeCustomLabel,
+    onChange: function(e){ setFreeCustomLabel(e.target.value); },
+    style: { width: "100%", padding: "12px 14px", borderRadius: 12,
+      background: "rgba(255,255,255,0.07)", border: "1px solid rgba(255,255,255,0.15)",
+      color: T.text, fontFamily: "'Outfit', sans-serif", fontSize: 14,
+      marginBottom: 8, boxSizing: "border-box" }
+  }),
+  /*#__PURE__*/React.createElement("button", {
+    onClick: () => selected && (selected !== "other" || freeCustomLabel.trim()) && setPhase("active"),
     style: {
       width: "100%",
       padding: "14px",
@@ -8118,7 +8127,17 @@ function FreeWorkoutSheet({
       letterSpacing: 2,
       marginBottom: 4
     }
-  }, fmtDur(elapsed)), /*#__PURE__*/React.createElement("div", {
+  }, editingElapsed ? /*#__PURE__*/React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6,marginTop:4,justifyContent:"center"}},
+      /*#__PURE__*/React.createElement("input",{type:"number",inputMode:"numeric",placeholder:"mins",value:manualElapsedMins,autoFocus:true,
+        onChange:function(e){setManualElapsedMins(e.target.value);},
+        style:{width:80,padding:"6px 10px",borderRadius:8,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.3)",
+               color:"#fff",fontFamily:"'DM Mono', monospace",fontSize:16,textAlign:"center"}}),
+      /*#__PURE__*/React.createElement("span",{style:{color:"rgba(255,255,255,0.5)",fontFamily:"'DM Mono', monospace",fontSize:13}},"min"),
+      /*#__PURE__*/React.createElement("button",{onClick:function(){var s=Math.round(parseFloat(manualElapsedMins)*60);if(!isNaN(s)&&s>0)setElapsed(s);setEditingElapsed(false);},
+        style:{padding:"6px 12px",borderRadius:8,background:"#4ade80",border:"none",color:"#0d0d14",fontFamily:"'DM Mono', monospace",fontSize:12,fontWeight:700,cursor:"pointer"}},"Set")
+    ) : /*#__PURE__*/React.createElement("div",{onClick:function(){setManualElapsedMins(String(Math.round(elapsed/60)));setEditingElapsed(true);},
+      style:{cursor:"pointer",borderBottom:"1px dashed rgba(255,255,255,0.25)",display:"inline-block"}},
+      fmtDur(elapsed)," \u270F")), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: T.textSub,
@@ -8157,7 +8176,17 @@ function FreeWorkoutSheet({
       color: type?.color,
       marginBottom: 4
     }
-  }, fmtDur(elapsed)), /*#__PURE__*/React.createElement("div", {
+  }, editingElapsed ? /*#__PURE__*/React.createElement("div",{style:{display:"flex",alignItems:"center",gap:6,marginTop:4,justifyContent:"center"}},
+      /*#__PURE__*/React.createElement("input",{type:"number",inputMode:"numeric",placeholder:"mins",value:manualElapsedMins,autoFocus:true,
+        onChange:function(e){setManualElapsedMins(e.target.value);},
+        style:{width:80,padding:"6px 10px",borderRadius:8,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.3)",
+               color:"#fff",fontFamily:"'DM Mono', monospace",fontSize:16,textAlign:"center"}}),
+      /*#__PURE__*/React.createElement("span",{style:{color:"rgba(255,255,255,0.5)",fontFamily:"'DM Mono', monospace",fontSize:13}},"min"),
+      /*#__PURE__*/React.createElement("button",{onClick:function(){var s=Math.round(parseFloat(manualElapsedMins)*60);if(!isNaN(s)&&s>0)setElapsed(s);setEditingElapsed(false);},
+        style:{padding:"6px 12px",borderRadius:8,background:"#4ade80",border:"none",color:"#0d0d14",fontFamily:"'DM Mono', monospace",fontSize:12,fontWeight:700,cursor:"pointer"}},"Set")
+    ) : /*#__PURE__*/React.createElement("div",{onClick:function(){setManualElapsedMins(String(Math.round(elapsed/60)));setEditingElapsed(true);},
+      style:{cursor:"pointer",borderBottom:"1px dashed rgba(255,255,255,0.25)",display:"inline-block"}},
+      fmtDur(elapsed)," \u270F")), /*#__PURE__*/React.createElement("div", {
     style: {
       fontSize: 11,
       color: T.textSub,
@@ -9097,6 +9126,7 @@ function HistoryView({
   activeDate,
   deleteConfirm,
   setDeleteConfirm,
+  onDeleteFree,
   T,
   dark
 }) {
@@ -9124,7 +9154,7 @@ function HistoryView({
     }));
     return [...plan, ...free].sort((a, b) => b.dateStr.localeCompare(a.dateStr));
   }, [logs, freeLogs, workouts]);
-  const historyEntries = Object.entries(logs).filter(([k]) => k.endsWith(`-${workout.id}`)).sort(([a], [b]) => b.localeCompare(a)).slice(0, 20);
+  const historyEntries = workout ? Object.entries(logs).filter(([k]) => k.endsWith(`-${workout.id}`)).sort(([a], [b]) => b.localeCompare(a)).slice(0, 20) : [];
   function FreeCard({
     f
   }) {
@@ -9176,7 +9206,14 @@ function HistoryView({
         fontWeight: 700,
         color: f.color
       }
-    }, fmtDur(f.duration))), f.note && /*#__PURE__*/React.createElement("div", {
+    }, fmtDur(f.duration)),
+      onDeleteFree && /*#__PURE__*/React.createElement("button", {
+        onClick: function(){ onDeleteFree(f.id); },
+        style:{width:24,height:24,borderRadius:"50%",border:"1px solid rgba(255,107,107,0.3)",
+               background:"rgba(255,107,107,0.1)",color:"#ff6b6b",fontSize:11,cursor:"pointer",
+               display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,marginLeft:4}
+      }, "\uD83D\uDDD1")
+    )), f.note && /*#__PURE__*/React.createElement("div", {
       style: {
         fontSize: 10,
         color: T.textSub,
@@ -9187,7 +9224,7 @@ function HistoryView({
         marginTop: 4,
         fontStyle: "italic"
       }
-    }, "\"", f.note, "\""));
+    }, "\"", f.note, "\"");
   }
   function PlanCard({
     k,
@@ -9401,7 +9438,7 @@ function HistoryView({
     }
   }, [{
     t: "day",
-    label: `Day ${workout.day}`
+    label: workout ? `Day ${workout.day}` : "Today"
   }, {
     t: "all",
     label: "All Workouts"
@@ -9414,9 +9451,9 @@ function HistoryView({
     style: {
       padding: "6px 14px",
       borderRadius: 20,
-      border: `1px solid ${histTab === t ? workout.tagColor : T.glassBorder}`,
-      background: histTab === t ? `${workout.tagColor}18` : T.glass,
-      color: histTab === t ? workout.tagColor : T.textSub,
+      border: `1px solid ${histTab === t ? (workout ? workout.tagColor : "#4ecdc4") : T.glassBorder}`,
+      background: histTab === t ? `${workout ? workout.tagColor : "#4ecdc4"}18` : T.glass,
+      color: histTab === t ? (workout ? workout.tagColor : "#4ecdc4") : T.textSub,
       fontSize: 10,
       fontFamily: "'DM Mono', monospace",
       cursor: "pointer"
@@ -10873,6 +10910,157 @@ function WarmupCooldownCard({type, dayId, stretchLogs, onToggleStretch, activeDa
 }
 
 
+
+// Exercise flags for pregnancy by trimester
+var PREG_FLAGS = {
+  "plank": {flag: "core", msg: "Modify: elevate hands on bench in T2/T3"},
+  "sit-up": {flag: "avoid-t2", msg: "Avoid after 20 weeks — compresses vena cava"},
+  "crunch": {flag: "avoid-t2", msg: "Avoid after 20 weeks"},
+  "bicycle crunch": {flag: "avoid-t2", msg: "Avoid after 20 weeks"},
+  "leg raise": {flag: "avoid-t2", msg: "Avoid after 20 weeks"},
+  "deadlift": {flag: "discuss", msg: "Use trap bar or reduce range of motion in T3"},
+  "back squat": {flag: "discuss", msg: "Switch to goblet squat in T3 for comfort"},
+  "bench press": {flag: "discuss", msg: "Switch to incline or dumbbell press after T1"},
+  "overhead press": {flag: "discuss", msg: "Discuss with provider — check for diastasis"},
+  "barbell row": {flag: "discuss", msg: "Switch to seated cable or dumbbell row"},
+  "hip thrust": {flag: "discuss", msg: "OK in T1, modify in T2/T3 with wedge"},
+  "jump": {flag: "avoid", msg: "Avoid plyometrics during pregnancy"},
+  "sprint": {flag: "avoid", msg: "Avoid high-impact sprinting"},
+  "hot yoga": {flag: "avoid", msg: "Avoid overheating — especially with MS"},
+  "sauna": {flag: "avoid", msg: "Avoid during pregnancy"}
+};
+
+function getPregnancyFlag(exerciseName) {
+  if (!exerciseName) return null;
+  var lower = exerciseName.toLowerCase();
+  for (var key in PREG_FLAGS) {
+    if (lower.includes(key)) return PREG_FLAGS[key];
+  }
+  return null;
+}
+
+function getTrimester(dueDate) {
+  if (!dueDate) return 1;
+  var due = new Date(dueDate);
+  var now = new Date();
+  var weeksLeft = (due - now) / (7 * 24 * 3600 * 1000);
+  var weeksPreg = 40 - weeksLeft;
+  if (weeksPreg < 13) return 1;
+  if (weeksPreg < 27) return 2;
+  return 3;
+}
+
+function getWeeksPregnant(dueDate) {
+  if (!dueDate) return null;
+  var due = new Date(dueDate);
+  var now = new Date();
+  var weeksLeft = (due - now) / (7 * 24 * 3600 * 1000);
+  return Math.round(40 - weeksLeft);
+}
+
+function PregnancyModeModal({T, dark, onClose}) {
+  var [preg, setPreg] = useState(function() {
+    try { return JSON.parse(localStorage.getItem(PREG_KEY) || 'null') || {}; } catch { return {}; }
+  });
+  var [dueDate, setDueDate] = useState(preg.dueDate || '');
+  var [ms, setMs] = useState(preg.ms || false);
+  var [enabled, setEnabled] = useState(preg.enabled || false);
+
+  function save() {
+    var data = {enabled: enabled, dueDate: dueDate, ms: ms};
+    try { localStorage.setItem(PREG_KEY, JSON.stringify(data)); } catch {}
+    onClose(data);
+  }
+
+  function remove() {
+    try { localStorage.removeItem(PREG_KEY); } catch {}
+    onClose(null);
+  }
+
+  var weeks = dueDate ? getWeeksPregnant(dueDate) : null;
+  var tri = dueDate ? getTrimester(dueDate) : 1;
+
+  return /*#__PURE__*/React.createElement("div", {
+    style: {position:"fixed",inset:0,zIndex:1100,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"flex-end"}
+  },
+    /*#__PURE__*/React.createElement("div", {
+      style: {background:T.sheetBg,borderRadius:"20px 20px 0 0",padding:"20px 20px 36px",width:"100%",maxHeight:"85vh",overflowY:"auto"}
+    },
+      /*#__PURE__*/React.createElement("div", {style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
+        /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit',sans-serif",fontSize:18,fontWeight:800,color:T.text}}, "🤰  Pregnancy Mode"),
+        /*#__PURE__*/React.createElement("button", {onClick:function(){onClose(null);}, style:{background:"transparent",border:"none",color:T.textSub,fontSize:22,cursor:"pointer"}}, "×")
+      ),
+
+      /*#__PURE__*/React.createElement("label", {style:{display:"flex",alignItems:"center",gap:10,marginBottom:18,cursor:"pointer"}},
+        /*#__PURE__*/React.createElement("input", {type:"checkbox",checked:enabled,onChange:function(e){setEnabled(e.target.checked);},style:{width:18,height:18,accentColor:"#f687b3"}}),
+        /*#__PURE__*/React.createElement("span", {style:{fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:700,color:T.text}}, "Enable pregnancy mode")
+      ),
+
+      enabled && /*#__PURE__*/React.createElement("div", null,
+        /*#__PURE__*/React.createElement("div", {style:{marginBottom:14}},
+          /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono',monospace",fontSize:10,color:T.textSub,marginBottom:6,letterSpacing:1}}, "DUE DATE"),
+          /*#__PURE__*/React.createElement("input", {
+            type:"date", value:dueDate,
+            onChange:function(e){setDueDate(e.target.value);},
+            style:{background:T.glass,border:"1px solid "+T.glassBorder,borderRadius:10,padding:"8px 12px",color:T.text,fontSize:14,fontFamily:"'Outfit',sans-serif",width:"100%",boxSizing:"border-box"}
+          }),
+          weeks && /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono',monospace",fontSize:10,color:"#f687b3",marginTop:5}},
+            weeks + " weeks pregnant • Trimester " + tri
+          )
+        ),
+
+        /*#__PURE__*/React.createElement("label", {style:{display:"flex",alignItems:"center",gap:10,marginBottom:18,cursor:"pointer"}},
+          /*#__PURE__*/React.createElement("input", {type:"checkbox",checked:ms,onChange:function(e){setMs(e.target.checked);},style:{width:18,height:18,accentColor:"#63b3ed"}}),
+          /*#__PURE__*/React.createElement("div", null,
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:700,color:T.text}}, "I have multiple sclerosis"),
+            /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono',monospace",fontSize:9,color:T.textSub,marginTop:2}}, "Adds heat sensitivity warnings and fatigue guidance")
+          )
+        ),
+
+        /*#__PURE__*/React.createElement("div", {style:{background:"rgba(246,135,179,0.1)",border:"1px solid rgba(246,135,179,0.3)",borderRadius:12,padding:"12px 14px",marginBottom:16}},
+          /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit',sans-serif",fontSize:12,fontWeight:700,color:"#f687b3",marginBottom:6}}, "What pregnancy mode does:"),
+          [
+            "🟡  Flags exercises to discuss with your provider",
+            "🚫  Marks exercises to avoid by trimester",
+            "⏱  Suggests longer rest times (90→120s, 60→90s)",
+            "🌡  Heat warnings on intense exercises" + (ms ? " (MS)" : ""),
+            "💬  Shows trimester-appropriate modifications",
+            "❤️  Reminds you to use the talk test"
+          ].map(function(tip, i) {
+            return /*#__PURE__*/React.createElement("div", {key:i, style:{fontFamily:"'DM Mono',monospace",fontSize:10,color:T.text,lineHeight:1.7}}, tip);
+          })
+        ),
+
+        ms && /*#__PURE__*/React.createElement("div", {style:{background:"rgba(99,179,237,0.1)",border:"1px solid rgba(99,179,237,0.3)",borderRadius:12,padding:"12px 14px",marginBottom:16}},
+          /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit',sans-serif",fontSize:12,fontWeight:700,color:"#63b3ed",marginBottom:6}}, "🩺 MS + Pregnancy:"),
+          [
+            "🌡  Heat raises neurological symptoms (Uhthoff’s) — stop if overheating",
+            "💤  MS + pregnancy fatigue stack — never push through exhaustion",
+            "⚖️  Balance exercises flagged — use wall/bench support",
+            "🏥  Tell your neurologist you’re pregnant if you haven’t"
+          ].map(function(tip, i) {
+            return /*#__PURE__*/React.createElement("div", {key:i, style:{fontFamily:"'DM Mono',monospace",fontSize:10,color:T.text,lineHeight:1.7}}, tip);
+          })
+        )
+      ),
+
+      /*#__PURE__*/React.createElement("div", {style:{display:"flex",gap:8,marginTop:8}},
+        /*#__PURE__*/React.createElement("button", {
+          onClick:save,
+          style:{flex:1,padding:"12px",borderRadius:12,background:"#f687b3",border:"none",color:"#fff",fontFamily:"'Outfit',sans-serif",fontSize:14,fontWeight:700,cursor:"pointer"}
+        }, "Save"),
+        preg.enabled && /*#__PURE__*/React.createElement("button", {
+          onClick:remove,
+          style:{padding:"12px 16px",borderRadius:12,background:T.glass,border:"1px solid "+T.glassBorder,color:T.textSub,fontFamily:"'Outfit',sans-serif",fontSize:14,cursor:"pointer"}
+        }, "Turn Off")
+      ),
+      /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono',monospace",fontSize:9,color:T.textSub,textAlign:"center",marginTop:12,lineHeight:1.5}},
+        "Always consult your OB and neurologist before changing your exercise program."
+      )
+    )
+  );
+}
+
 function WorkoutTracker() {
   const [locked, setLocked] = useState(false);
   const [plans, setPlans] = useState(() => {
@@ -10913,6 +11101,10 @@ function WorkoutTracker() {
   const [stretchLogs, setStretchLogs] = useState(loadStretchLogs);
   const [freeLogs, setFreeLogs] = useState(loadFreeLogs);
   const [freeOpen, setFreeOpen] = useState(false);
+  const [pregnancyMode, setPregnancyMode] = useState(function() {
+    try { return JSON.parse(localStorage.getItem(PREG_KEY) || 'null') || null; } catch { return null; }
+  });
+  const [pregModalOpen, setPregModalOpen] = useState(false);
   const [freeSession, setFreeSession] = useState(() => {
     try { return JSON.parse(localStorage.getItem("wt-free-session") || "null"); } catch { return null; }
   });
@@ -10932,6 +11124,8 @@ function WorkoutTracker() {
   }
   const [timerState, setTimerState] = useState("idle");
   const [shareOpen, setShareOpen] = useState(false);
+  const [editingDuration, setEditingDuration] = useState(false);
+  const [manualMins, setManualMins] = useState("");
   const workoutStartedRef = useRef(false);
   const [timerElapsed, setTimerElapsed] = useState(0);
   const [timerStart, setTimerStart] = useState(null);
@@ -10966,6 +11160,12 @@ function WorkoutTracker() {
   useSwipeBack(function() {
     if (view !== "workout") setView("workout");
   }, view !== "workout");
+
+  // Set global video opener so all components can open videos in Safari
+  useEffect(() => {
+    window.__openVideo = function(url) { if (url) window.open(url, '_blank'); };
+    return function() { try { delete window.__openVideo; } catch(e) {} };
+  }, []);
 
   // Reset workoutStartedRef when day or date changes
   useEffect(() => {
@@ -11080,6 +11280,13 @@ function WorkoutTracker() {
     weights: {
       ...l.weights,
       [k]: v
+    }
+  })), [logKey]);
+  const onToggleBW = useCallback((k) => mutate(l => ({
+    ...l,
+    bw: {
+      ...(l.bw||{}),
+      [k]: !(l.bw && l.bw[k])
     }
   })), [logKey]);
   const onTogglePR = useCallback(k => mutate(l => ({
@@ -11628,7 +11835,14 @@ function WorkoutTracker() {
       const next = [...freeLogs, fw];
       setFreeLogs(next);
       saveFreeLogs(next);
+      setFreeSession(null);
+      localStorage.removeItem("wt-free-session");
     },
+    onSessionUpdate: function(s) {
+      setFreeSession(s);
+      localStorage.setItem("wt-free-session", JSON.stringify(s));
+    },
+    session: freeSession,
     T: T,
     dark: dark
   }), plansOpen && /*#__PURE__*/React.createElement(PlansSheet, {
@@ -11780,7 +11994,19 @@ function WorkoutTracker() {
     onSave: saveWorkout,
     T: T,
     dark: dark
-  }), menuOpen && /*#__PURE__*/React.createElement("div", {
+  }), pregModalOpen && /*#__PURE__*/React.createElement(PregnancyModeModal, {
+    T: T,
+    dark: dark,
+    onClose: function(data) {
+      setPregModalOpen(false);
+      if (data !== undefined) {
+        setPregnancyMode(data && data.enabled ? data : null);
+        if (data && data.enabled) try { localStorage.setItem(PREG_KEY, JSON.stringify(data)); } catch {}
+        else try { localStorage.removeItem(PREG_KEY); } catch {}
+      }
+    }
+  }),
+  menuOpen && /*#__PURE__*/React.createElement("div", {
     style: {
       position: "fixed",
       inset: 0,
@@ -11871,19 +12097,27 @@ function WorkoutTracker() {
                 userVerification: "required",
                 authenticatorAttachment: "platform"
               },
-              timeout: 30000
+              timeout: 60000
             }
           });
           const id = btoa(String.fromCharCode(...new Uint8Array(c.rawId)));
           localStorage.setItem("wt-cred-id", id);
           return true;
-        } catch {
+        } catch(e) {
+          // NotSupportedError means device has no biometrics — tell user clearly
+          const msg = e && e.name ? e.name : String(e);
+          if (msg.includes('NotSupported') || msg.includes('NotAllowed')) return 'unsupported';
           return false;
         }
       })();
       setMenuOpen(false);
-      alert(ok ? "✅ Face ID registered! You can now use Face ID to unlock." : "❌ Face ID registration failed or not supported.");
+      if (ok === true) alert("✅ Face ID / biometrics registered! You can now use it to unlock the Photos tab.");
+      else if (ok === 'unsupported') alert("⚠️ Your device or browser doesn’t support biometric authentication. Use a PIN instead.");
+      else alert("❌ Registration cancelled or failed. Make sure Face ID is enabled in iOS Settings for Safari.");
     }
+  }, {
+    label: pregnancyMode && pregnancyMode.enabled ? "🤰  Pregnancy Mode ✔" : "🤰  Pregnancy Mode",
+    a: function() { setPregModalOpen(true); setMenuOpen(false); }
   }].map(item => /*#__PURE__*/React.createElement("button", {
     key: item.label,
     onClick: item.a,
@@ -12102,15 +12336,23 @@ function WorkoutTracker() {
     workouts: workouts,
     onAddToWorkout: onAddToWorkout,
     onDoWorkoutToday: pw => {
-      const newDay = {
-        id: "preset-"+rndId(), day: workouts.length+1,
-        title: pw.title, tag: pw.tag, tagColor: pw.tagColor, emoji: pw.emoji,
-        exercises: pw.exercises||[], core: pw.core||[], cardio: pw.cardio||[], isRecovery: false
-      };
-      const nw = [...workouts, newDay];
-      setWorkouts(nw); saveWorkouts(nw);
-      setPlans(ps=>ps.map(p=>p.active?{...p,workouts:nw}:p));
-      setSelDay(nw.length-1); setActiveDate(getTodayKey()); setView("workout");
+      try {
+        const fw = {
+          id: rndId(),
+          date: getTodayKey(),
+          type: "library",
+          label: (pw && pw.title) || "Library Workout",
+          emoji: (pw && pw.emoji) || "\uD83C\uDFCB",
+          color: (pw && pw.tagColor) || "#4ecdc4",
+          duration: 0,
+          note: "",
+          startedAt: new Date().toISOString()
+        };
+        const next = [...(freeLogs||[]), fw];
+        setFreeLogs(next);
+        saveFreeLogs(next);
+        setView("history");
+      } catch(e) { alert("Error: "+e.message); }
     },
     onAddWorkoutToPlan: pw => {
       const newDay = {
@@ -12133,6 +12375,11 @@ function WorkoutTracker() {
     activeDate: activeDate,
     deleteConfirm: deleteConfirm,
     setDeleteConfirm: setDeleteConfirm,
+    onDeleteFree: function(id) {
+      const next = freeLogs.filter(f => f.id !== id);
+      setFreeLogs(next);
+      saveFreeLogs(next);
+    },
     T: T,
     dark: dark
   }), view === "workout" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
@@ -12420,12 +12667,15 @@ function WorkoutTracker() {
       /*#__PURE__*/React.createElement("div", null,
         /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:9,letterSpacing:2,color:"rgba(74,222,128,0.7)",marginBottom:4}}, "WORKOUT COMPLETE"),
         /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'Outfit', sans-serif",fontSize:18,fontWeight:800,color:"#f2ede6"}}, workout.title),
-        /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono', monospace",fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:2}},
-          (function(){
-            var m = Math.floor(timerElapsed/60), s = timerElapsed%60;
-            return m+"m "+(s<10?"0":"")+s+"s";
-          })()
-        )
+        editingDuration
+          ? /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:6,marginTop:4}},
+              /*#__PURE__*/React.createElement("input", {type:"number",inputMode:"numeric",placeholder:"mins",value:manualMins,autoFocus:true,
+                onChange:function(e){setManualMins(e.target.value);},
+                style:{width:70,padding:"4px 8px",borderRadius:8,background:"rgba(255,255,255,0.1)",border:"1px solid rgba(255,255,255,0.3)",color:"#fff",fontFamily:"'DM Mono', monospace",fontSize:13,textAlign:"center"}}),
+              /*#__PURE__*/React.createElement("span",{style:{color:"rgba(255,255,255,0.4)",fontSize:11,fontFamily:"'DM Mono', monospace"}},"min"),
+              /*#__PURE__*/React.createElement("button",{onClick:function(){var secs=Math.round(parseFloat(manualMins)*60);if(!isNaN(secs)&&secs>0){setTimerElapsed(secs);mutate(function(l){return Object.assign({},l,{duration:secs});});}setEditingDuration(false);},style:{padding:"4px 10px",borderRadius:8,background:"#4ade80",border:"none",color:"#0d0d14",fontFamily:"'DM Mono', monospace",fontSize:11,fontWeight:700,cursor:"pointer"}},"Set"))
+          : /*#__PURE__*/React.createElement("div",{onClick:function(){setManualMins(String(Math.round(timerElapsed/60)));setEditingDuration(true);},style:{fontFamily:"'DM Mono', monospace",fontSize:11,color:"rgba(255,255,255,0.5)",marginTop:2,cursor:"pointer",borderBottom:"1px dashed rgba(255,255,255,0.25)",display:"inline-block"}},
+            (function(){var m=Math.floor(timerElapsed/60),s=timerElapsed%60;return m+"m "+(s<10?"0":"")+s+"s";})()+" \u270F")
       ),
       /*#__PURE__*/React.createElement("div", {style:{fontSize:32}}, workout.emoji||"\uD83D\uDCAA")
     ),
@@ -12592,6 +12842,20 @@ function WorkoutTracker() {
     stretchLogs:stretchLogs, onToggleStretch:onToggleStretch,
     activeDate:activeDate, accent:workout.tagColor||"#4ecdc4", T:T, dark:dark
   }),
+  pregnancyMode && pregnancyMode.enabled && /*#__PURE__*/React.createElement("div", {
+    style:{background:"rgba(246,135,179,0.12)",border:"1px solid rgba(246,135,179,0.35)",borderRadius:14,padding:"10px 14px",margin:"0 0 10px 0"}
+  },
+    /*#__PURE__*/React.createElement("div", {style:{display:"flex",alignItems:"center",gap:8,marginBottom:4}},
+      /*#__PURE__*/React.createElement("span", {style:{fontSize:14}}, "🤰"),
+      /*#__PURE__*/React.createElement("span", {style:{fontFamily:"'Outfit',sans-serif",fontSize:12,fontWeight:700,color:"#f687b3"}},
+        "Pregnancy Mode • " + (pregnancyMode.dueDate ? (getWeeksPregnant(pregnancyMode.dueDate) + " weeks • T" + getTrimester(pregnancyMode.dueDate)) : "Active")
+      )
+    ),
+    /*#__PURE__*/React.createElement("div", {style:{fontFamily:"'DM Mono',monospace",fontSize:9,color:"#f687b3",lineHeight:1.6}},
+      "❤️ Use the talk test • Rest longer • Stop if dizzy, cramping, or short of breath" +
+      (pregnancyMode.ms ? " • 🌡 Stop if overheating (MS heat sensitivity)" : "")
+    )
+  ),
   /*#__PURE__*/React.createElement(ExerciseSection, {
     exercises: workout.exercises,
     onShowCue: ex => setFormCueEx(ex),
@@ -12606,8 +12870,10 @@ function WorkoutTracker() {
     onToggleSet: onToggleSet,
     onSaveWeight: onSaveWeight,
     onTogglePR: onTogglePR,
+    onToggleBW: onToggleBW,
     onSwapExercise: onSwapExercise,
-    onOpenPanel: onOpenPanel
+    onOpenPanel: onOpenPanel,
+    pregnancyMode: pregnancyMode
   }), /*#__PURE__*/React.createElement(ExerciseSection, {
     exercises: workout.core,
     onShowCue: ex => setFormCueEx(ex),
@@ -12714,7 +12980,7 @@ function WorkoutTracker() {
     /*#__PURE__*/React.createElement("span", {style:{fontSize:16}}, freeSession && freeSession.emoji),
     /*#__PURE__*/React.createElement("span", {style:{fontFamily:"'DM Mono', monospace",fontSize:11,fontWeight:700,color:"#0d0d14"}},
       freeSession && freeSession.label, " ",
-      (() => { if(!freeSession) return ""; const s=Math.floor((Date.now()-freeSession.startedAt)/1000); const m=Math.floor(s/60),sec=s%60; return m>0?m+"m":sec+"s"; })()
+      (() => { if(!freeSession) return ""; const s=freeSession.elapsed||Math.floor((Date.now()-new Date(freeSession.startedAt).getTime())/1000); const m=Math.floor(s/60),sec=s%60; return m>0?m+"m":sec+"s"; })()
     )
   ) : null,
   (view === "workout" || view === "stretch") && !workout.isRecovery && /*#__PURE__*/React.createElement("button", {
